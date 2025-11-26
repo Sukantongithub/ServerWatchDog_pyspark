@@ -10,7 +10,6 @@ from log_generator import LogGenerator
 from web_app import add_anomaly, update_statistics, app, socketio
 from ngrok_tunnel import NgrokTunnel
 from config import LOG_FILE_PATH
-from graph_analyzer import GraphAnalyzer
 
 # PySpark imports
 from pyspark.sql import SparkSession
@@ -53,11 +52,8 @@ class SparkAnomalyDetectionSystem:
         # Initialize Spark
         self.initialize_spark()
         
-        # Create necessary directories
-        os.makedirs('static', exist_ok=True)
-        
         # Initialize other components
-        self.log_generator = LogGenerator(anomaly_rate=0.2)
+        self.log_generator = LogGenerator()
         self.ngrok_tunnel = NgrokTunnel()
         
         print("System initialized successfully!")
@@ -73,10 +69,10 @@ class SparkAnomalyDetectionSystem:
             regexp_extract(col("value"), r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})", 1)
         ).withColumn(
             "level",
-            regexp_extract(col("value"), r" (INFO|WARN|ERROR|DEBUG) ", 1)
+            regexp_extract(col("value"), r"\[(INFO|WARN|ERROR|DEBUG)\]", 1)
         ).withColumn(
             "service",
-            regexp_extract(col("value"), r" ([a-z\-]+) -", 1)
+            regexp_extract(col("value"), r"\] ([a-z\-]+) -", 1)
         ).withColumn(
             "message",
             regexp_extract(col("value"), r"- (.*?) \|", 1)
@@ -197,14 +193,6 @@ class SparkAnomalyDetectionSystem:
         print(f"   Cluster Centers: {len(self.model.clusterCenters())}")
         print("="*60 + "\n")
         
-        # Generate graph data for visualization
-        print("Generating graph data for dashboard...")
-        analyzer = GraphAnalyzer(self.spark)
-        graph = analyzer.create_service_graph(feature_df)
-        ranks_df = analyzer.detect_graph_anomalies(graph)
-        analyzer.export_graph_for_visualization(graph, "static/graph_data.json")
-        print("Graph data exported for dashboard visualization.")
-        
         return True
     
     def detect_anomaly_spark(self, log_entry_row):
@@ -266,7 +254,7 @@ class SparkAnomalyDetectionSystem:
                 for row in results[last_count:]:
                     anomaly_score = self.detect_anomaly_spark(row)
                     
-                    if anomaly_score > 0.4:
+                    if anomaly_score > 0.6:
                         anomaly_data = {
                             'timestamp': str(row.timestamp),
                             'level': row.level,

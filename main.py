@@ -108,8 +108,7 @@ class AnomalyDetectionSystem:
         """Process logs and detect anomalies"""
         print("Starting log processing loop...")
         
-        # Track number of log lines processed so far
-        last_count = 0
+        last_position = 0
         
         while self.running:
             try:
@@ -118,76 +117,78 @@ class AnomalyDetectionSystem:
                     time.sleep(5)
                     continue
                 
-                # Read logs and get current total count of lines
-                log_df = self.spark.read.text(LOG_FILE_PATH)
-                total_logs = log_df.count()
+                # Get file size
+                current_size = os.path.getsize(LOG_FILE_PATH)
                 
-                # If no new logs since last check, wait
-                if total_logs <= last_count:
-                    time.sleep(5)
-                    continue
-                
-                # Parse logs
-                parsed_df = self.parser.parse_log_line(log_df)
-                feature_df = self.parser.extract_features(parsed_df)
-                
-                # Filter out empty rows
-                feature_df = feature_df.filter(
-                    col("timestamp").isNotNull() & 
-                    col("level").isNotNull()
-                )
-                
-                if feature_df.count() == 0:
-                    time.sleep(5)
-                    continue
-                
-                # Create feature vectors
-                scaled_df, _ = self.parser.create_feature_vector(feature_df)
-                
-                # Detect anomalies
-                anomaly_df = self.detector.ensemble_anomaly_detection(scaled_df)
-                
-                # Filter only anomalies
-                anomalies = anomaly_df.filter(col("is_anomaly_final") == 1)
-                
-                # Send to web interface
-                anomaly_list = anomalies.select(
-                    "timestamp", "level", "service", "message", 
-                    "ip_address", "user", "response_time",
-                    "final_anomaly_score"
-                ).collect()
-                
-                for anomaly in anomaly_list:
-                    anomaly_data = {
-                        "timestamp": str(anomaly.timestamp),
-                        "level": anomaly.level,
-                        "service": anomaly.service,
-                        "message": anomaly.message,
-                        "ip_address": anomaly.ip_address,
-                        "user": anomaly.user,
-                        "response_time": anomaly.response_time,
-                        "anomaly_score": float(anomaly.final_anomaly_score)
-                    }
-                    add_anomaly(anomaly_data)
-                
-                # Update statistics with number of new log lines processed
-                update_statistics(total_logs - last_count)
-                
-                # Update last_count to reflect processed logs
-                last_count = total_logs
-                
-                # Update graph every 10 iterations
-                if total_logs % 100 == 0:
-                    print("Updating graph analysis...")
-                    vertices, edges = self.graph_analyzer.create_service_graph(feature_df)
-                    node_stats, suspicious_edges = self.graph_analyzer.detect_graph_anomalies(
-                        vertices, edges
+                # If file grew, process new logs
+                if current_size > last_position:
+                    # Read logs
+                    log_df = self.spark.read.text(LOG_FILE_PATH)
+                    
+                    if log_df.count() == 0:
+                        time.sleep(5)
+                        continue
+                    
+                    # Parse logs
+                    parsed_df = self.parser.parse_log_line(log_df)
+                    feature_df = self.parser.extract_features(parsed_df)
+                    
+                    # Filter out empty rows
+                    feature_df = feature_df.filter(
+                        col("timestamp").isNotNull() & 
+                        col("level").isNotNull()
                     )
-                    self.graph_analyzer.export_graph_for_visualization(
-                        vertices, edges, "static/graph_data.json"
-                    )
-                
-                print(f"Processed {total_logs} logs, found {len(anomaly_list)} anomalies")
+                    
+                    if feature_df.count() == 0:
+                        time.sleep(5)
+                        continue
+                    
+                    # Create feature vectors
+                    scaled_df, _ = self.parser.create_feature_vector(feature_df)
+                    
+                    # Detect anomalies
+                    anomaly_df = self.detector.ensemble_anomaly_detection(scaled_df)
+                    
+                    # Filter only anomalies
+                    anomalies = anomaly_df.filter(col("is_anomaly_final") == 1)
+                    
+                    # Send to web interface
+                    anomaly_list = anomalies.select(
+                        "timestamp", "level", "service", "message", 
+                        "ip_address", "user", "response_time",
+                        "final_anomaly_score"
+                    ).collect()
+                    
+                    for anomaly in anomaly_list:
+                        anomaly_data = {
+                            "timestamp": str(anomaly.timestamp),
+                            "level": anomaly.level,
+                            "service": anomaly.service,
+                            "message": anomaly.message,
+                            "ip_address": anomaly.ip_address,
+                            "user": anomaly.user,
+                            "response_time": anomaly.response_time,
+                            "anomaly_score": float(anomaly.final_anomaly_score)
+                        }
+                        add_anomaly(anomaly_data)
+                    
+                    # Update statistics
+                    total_logs = log_df.count()
+                    update_statistics(total_logs - last_position)
+                    
+                    # Update graph every 10 iterations
+                    if total_logs % 100 == 0:
+                        print("Updating graph analysis...")
+                        vertices, edges = self.graph_analyzer.create_service_graph(feature_df)
+                        node_stats, suspicious_edges = self.graph_analyzer.detect_graph_anomalies(
+                            vertices, edges
+                        )
+                        self.graph_analyzer.export_graph_for_visualization(
+                            vertices, edges, "static/graph_data.json"
+                        )
+                    
+                    last_position = current_size
+                    print(f"Processed {total_logs} logs, found {len(anomaly_list)} anomalies")
                 
                 time.sleep(5)
                 
