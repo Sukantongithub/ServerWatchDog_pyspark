@@ -206,11 +206,438 @@
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         font-size: 0.9em;
       }
+
+      header {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 20px 0;
+        margin-bottom: 30px;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+
+      header h1 {
+        margin: 0;
+        color: #667eea;
+        text-shadow: none;
+      }
+
+      header p {
+        color: #666;
+        margin: 10px 0 0 0;
+        font-size: 0.95em;
+      }
+
+      footer {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 20px;
+        margin-top: 50px;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        color: #666;
+        font-size: 0.9em;
+      }
+
+      footer p {
+        margin: 5px 0;
+      }
+
+      .footer-divider {
+        border-top: 1px solid #ddd;
+        margin: 15px 0;
+      }
+
+      @media (max-width: 768px) {
+        .stats-grid {
+          grid-template-columns: 1fr;
+        }
+        .charts-container {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* Navigation Bar Styles */
+      nav {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 0;
+        margin: -20px -20px 20px -20px;
+        border-radius: 0;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        position: sticky;
+        top: -20px;
+        z-index: 1000;
+      }
+
+      .navbar-container {
+        max-width: 1600px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        flex-wrap: wrap;
+      }
+
+      .navbar-brand {
+        color: white;
+        font-size: 1.5em;
+        font-weight: bold;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .navbar-menu {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+
+      .nav-item {
+        color: white;
+        text-decoration: none;
+        padding: 8px 15px;
+        border-radius: 5px;
+        transition: background 0.3s ease;
+        font-size: 0.95em;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .nav-item:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .nav-item.active {
+        background: rgba(255, 255, 255, 0.3);
+        font-weight: bold;
+      }
+
+      .status-badge {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 5px;
+        animation: blink 1s infinite;
+      }
+
+      .status-badge.online {
+        background: #27ae60;
+      }
+
+      .status-badge.offline {
+        background: #e74c3c;
+      }
+
+      .status-badge.processing {
+        background: #f39c12;
+      }
+
+      .upload-btn,
+      .process-btn,
+      .system-btn,
+      .spark-btn {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.9em;
+      }
+
+      .upload-btn:hover,
+      .process-btn:hover,
+      .system-btn:hover,
+      .spark-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.6);
+      }
+
+      .upload-btn.processing,
+      .process-btn.processing {
+        background: #f39c12;
+        opacity: 0.7;
+      }
+
+      /* Modal Styles */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+
+      .modal-content {
+        background-color: white;
+        margin: 10% auto;
+        padding: 30px;
+        border-radius: 15px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      }
+
+      .modal-header {
+        font-size: 1.5em;
+        font-weight: bold;
+        color: #667eea;
+        margin-bottom: 20px;
+      }
+
+      .modal-body {
+        margin-bottom: 20px;
+      }
+
+      .modal-footer {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+
+      .close-btn {
+        float: right;
+        font-size: 2em;
+        font-weight: bold;
+        color: #999;
+        cursor: pointer;
+        line-height: 20px;
+      }
+
+      .close-btn:hover {
+        color: #333;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+      }
+
+      .form-group input[type="file"],
+      .form-group input[type="text"],
+      .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-family: inherit;
+      }
+
+      .form-group input[type="file"]:focus,
+      .form-group input[type="text"]:focus,
+      .form-group textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 5px #667eea;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.95em;
+        transition: all 0.3s ease;
+      }
+
+      .btn-primary {
+        background: #667eea;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #5568d3;
+      }
+
+      .btn-secondary {
+        background: #999;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: #777;
+      }
+
+      .btn-success {
+        background: #27ae60;
+        color: white;
+      }
+
+      .btn-success:hover {
+        background: #229954;
+      }
+
+      .btn-danger {
+        background: #e74c3c;
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background: #c0392b;
+      }
+
+      .system-info {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+      }
+
+      .system-info-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        padding: 5px 0;
+        border-bottom: 1px solid #eee;
+      }
+
+      .system-info-label {
+        font-weight: bold;
+        color: #667eea;
+      }
+
+      .system-info-value {
+        color: #333;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 20px;
+        background: #e0e0e0;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-top: 5px;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        width: 0%;
+        transition: width 0.3s ease;
+      }
+
+      .file-list {
+        margin-top: 15px;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+
+      .file-item {
+        background: white;
+        padding: 10px;
+        margin-bottom: 5px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .file-item button {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 0.85em;
+      }
+
+      .file-item button:hover {
+        background: #5568d3;
+      }
     </style>
   </head>
   <body>
     <div class="container">
-      <h1>🔍 Real-time Log Anomaly Detection Dashboard</h1>
+      <!-- NAVIGATION BAR -->
+      <nav>
+        <div class="navbar-container">
+          <div class="navbar-brand">🔍 Anomaly Detection</div>
+
+          <div class="navbar-menu">
+            <!-- System Status -->
+            <div class="nav-item">
+              <span class="status-badge" id="systemStatusBadge"></span>
+              <span id="systemStatusText">Offline</span>
+            </div>
+
+            <!-- System Controls -->
+            <button
+              class="system-btn"
+              id="systemToggleBtn"
+              onclick="toggleSystem()"
+              title="Start/Stop System"
+            >
+              ▶ Start
+            </button>
+
+            <!-- Upload File -->
+            <button
+              class="upload-btn"
+              onclick="openUploadModal()"
+              title="Upload Log File"
+            >
+              📤 Upload
+            </button>
+
+            <!-- Process Log -->
+            <button
+              class="process-btn"
+              id="processBtn"
+              onclick="openProcessModal()"
+              title="Process Log File"
+            >
+              ⚙ Process
+            </button>
+
+            <!-- Spark UI Link -->
+            <a
+              class="spark-btn nav-item"
+              href="http://localhost:4040"
+              target="_blank"
+              title="Open Spark Web UI"
+            >
+              🔥 Spark UI
+            </a>
+
+            <!-- System Info -->
+            <button
+              class="nav-item"
+              onclick="openSystemInfoModal()"
+              style="background: rgba(255, 255, 255, 0.2)"
+              title="View System Information"
+            >
+              ℹ System
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <!-- PAGE HEADER -->
+      <header>
+        <h1>🔍 Real-time Log Anomaly Detection Dashboard</h1>
+        <p>
+          Monitor and analyze log anomalies in real-time with advanced machine
+          learning
+        </p>
+      </header>
 
       <div class="connection-status">
         <span class="status-indicator status-online"></span>
@@ -219,6 +646,7 @@
 
       <div id="alertContainer"></div>
 
+      <!-- STATISTICS SECTION -->
       <div class="stats-grid">
         <div class="stat-card success">
           <h3>Total Logs Processed</h3>
@@ -238,6 +666,7 @@
         </div>
       </div>
 
+      <!-- CHARTS SECTION -->
       <div class="charts-container">
         <div class="chart-card">
           <h2>📊 Anomaly Timeline</h2>
@@ -247,6 +676,10 @@
           <h2>🎯 Anomaly Score Distribution</h2>
           <div id="scoreChart"></div>
         </div>
+        <div class="chart-card">
+          <h2>📊 Anomaly Distribution by Service</h2>
+          <div id="servicePieChart"></div>
+        </div>
       </div>
 
       <div class="chart-card" style="margin-bottom: 30px">
@@ -254,6 +687,7 @@
         <div id="networkGraph"></div>
       </div>
 
+      <!-- ANOMALIES TABLE SECTION -->
       <div id="anomalyTable">
         <h2 style="color: #667eea; margin-bottom: 15px">🚨 Recent Anomalies</h2>
         <table>
@@ -276,8 +710,159 @@
           </tbody>
         </table>
       </div>
+
+      <!-- PAGE FOOTER -->
+      <footer>
+        <div class="footer-divider"></div>
+        <p><strong>Log Anomaly Detection System v1.0</strong></p>
+        <p>Powered by Apache Spark MLlib | Real-time Monitoring & Analysis</p>
+        <p>© 2025 - Anomaly Detection Platform | All Rights Reserved</p>
+        <p style="margin-top: 10px; font-size: 0.85em; color: #999">
+          Last Updated: <span id="lastUpdate">Loading...</span>
+        </p>
+      </footer>
     </div>
 
+    <!-- UPLOAD MODAL -->
+    <div id="uploadModal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" onclick="closeUploadModal()">&times;</span>
+        <div class="modal-header">📤 Upload Log File</div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="logFile">Select Log File (.log or .txt)</label>
+            <input type="file" id="logFile" accept=".log,.txt" />
+          </div>
+          <div
+            id="uploadStatus"
+            style="
+              display: none;
+              margin-top: 10px;
+              padding: 10px;
+              border-radius: 5px;
+            "
+          ></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeUploadModal()">
+            Cancel
+          </button>
+          <button class="btn btn-primary" id="uploadBtn" onclick="uploadFile()">
+            Upload
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROCESS MODAL -->
+    <div id="processModal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" onclick="closeProcessModal()">&times;</span>
+        <div class="modal-header">⚙ Process Log File</div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="logFilePath">Log File Path</label>
+            <input
+              type="text"
+              id="logFilePath"
+              placeholder="logs/server_logs.log"
+              value="logs/server_logs.log"
+            />
+          </div>
+          <div
+            id="processStatus"
+            style="
+              display: none;
+              margin-top: 10px;
+              padding: 10px;
+              border-radius: 5px;
+            "
+          ></div>
+          <div id="uploadedFiles" class="file-list"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeProcessModal()">
+            Cancel
+          </button>
+          <button
+            class="btn btn-primary"
+            id="processBtn2"
+            onclick="processLog()"
+          >
+            Process
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYSTEM INFO MODAL -->
+    <div id="systemInfoModal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" onclick="closeSystemInfoModal()">&times;</span>
+        <div class="modal-header">ℹ System Information</div>
+        <div class="modal-body">
+          <div class="system-info">
+            <div class="system-info-item">
+              <span class="system-info-label">Status:</span>
+              <span class="system-info-value" id="infoStatus">Offline</span>
+            </div>
+            <div class="system-info-item">
+              <span class="system-info-label">Uptime:</span>
+              <span class="system-info-value" id="infoUptime">0 seconds</span>
+            </div>
+            <div class="system-info-item">
+              <span class="system-info-label">Spark Status:</span>
+              <span class="system-info-value" id="infoSparkStatus"
+                >Offline</span
+              >
+            </div>
+            <div class="system-info-item">
+              <span class="system-info-label">Logs Processed Today:</span>
+              <span class="system-info-value" id="infoLogsProcessed">0</span>
+            </div>
+            <div class="system-info-item">
+              <span class="system-info-label">Total Logs:</span>
+              <span class="system-info-value" id="infoTotalLogs">0</span>
+            </div>
+            <div class="system-info-item">
+              <span class="system-info-label">Total Anomalies:</span>
+              <span class="system-info-value" id="infoTotalAnomalies">0</span>
+            </div>
+            <div class="system-info-item">
+              <span class="system-info-label">Anomaly Rate:</span>
+              <span class="system-info-value" id="infoAnomalyRate">0%</span>
+            </div>
+            <div class="system-info-item">
+              <span class="system-info-label">Processing:</span>
+              <span class="system-info-value" id="infoProcessing">No</span>
+            </div>
+          </div>
+          <div style="margin-top: 15px">
+            <p style="margin-bottom: 10px; font-weight: bold">Last Anomaly:</p>
+            <div
+              id="infoLastAnomaly"
+              style="
+                background: white;
+                padding: 10px;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                font-size: 0.9em;
+              "
+            >
+              No anomalies yet
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeSystemInfoModal()">
+            Close
+          </button>
+          <button class="btn btn-primary" onclick="refreshSystemInfo()">
+            Refresh
+          </button>
+        </div>
+      </div>
+    </div>
     <script>
       // Initialize Socket.IO connection
       const socket = io();
@@ -286,10 +871,18 @@
       let anomalyScores = [];
       let timelineData = { timestamps: [], counts: [] };
 
+      // Update last updated timestamp
+      function updateLastUpdated() {
+        const now = new Date();
+        document.getElementById("lastUpdate").textContent =
+          now.toLocaleString();
+      }
+
       // Socket event handlers
       socket.on("connect", () => {
         document.getElementById("connectionStatus").textContent = "Connected";
         console.log("Connected to server");
+        updateLastUpdated();
       });
 
       socket.on("disconnect", () => {
@@ -302,6 +895,7 @@
         addAnomalyToTable(data);
         anomalyScores.push(data.anomaly_score || 0);
         updateScoreChart();
+        updateLastUpdated();
 
         if (data.anomaly_score > 0.8) {
           showAlert(data);
@@ -310,6 +904,7 @@
 
       socket.on("stats_update", (data) => {
         updateStatistics(data);
+        updateLastUpdated();
       });
 
       // Update statistics
@@ -431,7 +1026,7 @@
         fetch("/api/graph_data")
           .then((response) => response.json())
           .then((data) => {
-            if (data.nodes.length === 0) {
+            if (!data.nodes || data.nodes.length === 0) {
               document.getElementById("networkGraph").innerHTML =
                 '<p style="text-align: center; padding: 50px; color: #999;">Graph data not available yet</p>';
               return;
@@ -520,6 +1115,34 @@
           });
       }
 
+      // Fetch anomaly distribution data
+      function updateServicePieChart() {
+        fetch("/api/anomaly_distribution")
+          .then((response) => response.json())
+          .then((data) => {
+            if (!data.services || data.services.length === 0) {
+              console.warn("No service data available for pie chart");
+              return;
+            }
+
+            const trace = {
+              labels: data.services,
+              values: data.counts,
+              type: "pie",
+            };
+
+            const layout = {
+              title: "",
+              height: 400,
+            };
+
+            Plotly.newPlot("servicePieChart", [trace], layout, {
+              responsive: true,
+            });
+          })
+          .catch((error) => console.error("Error loading pie chart:", error));
+      }
+
       // Fetch initial data
       function fetchInitialData() {
         fetch("/api/stats")
@@ -533,15 +1156,19 @@
         fetch("/api/recent_anomalies")
           .then((response) => response.json())
           .then((anomalies) => {
-            anomalies.forEach((anomaly) => {
-              addAnomalyToTable(anomaly);
-              anomalyScores.push(anomaly.anomaly_score || 0);
-            });
-            updateScoreChart();
+            if (Array.isArray(anomalies)) {
+              anomalies.forEach((anomaly) => {
+                addAnomalyToTable(anomaly);
+                anomalyScores.push(anomaly.anomaly_score || 0);
+              });
+              updateScoreChart();
+            }
           });
 
         updateTimelineChart();
         loadNetworkGraph();
+        updateServicePieChart();
+        updateLastUpdated();
       }
 
       // Initialize dashboard
@@ -550,6 +1177,254 @@
       // Refresh data periodically
       setInterval(fetchInitialData, 10000);
       setInterval(updateTimelineChart, 5000);
+      setInterval(updateServicePieChart, 10000);
+      setInterval(updateLastUpdated, 60000); // Update footer timestamp every minute
+
+      // ==========================================
+      // MODAL FUNCTIONS
+      // ==========================================
+
+      // Upload Modal Functions
+      function openUploadModal() {
+        document.getElementById("uploadModal").style.display = "block";
+      }
+
+      function closeUploadModal() {
+        document.getElementById("uploadModal").style.display = "none";
+        document.getElementById("uploadStatus").style.display = "none";
+      }
+
+      function uploadFile() {
+        const fileInput = document.getElementById("logFile");
+        const file = fileInput.files[0];
+
+        if (!file) {
+          showUploadStatus("Please select a file", "error");
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const uploadBtn = document.getElementById("uploadBtn");
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = "Uploading...";
+
+        fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.status === "success") {
+              showUploadStatus(
+                "✅ File uploaded successfully: " + data.filepath,
+                "success"
+              );
+              fileInput.value = "";
+            } else {
+              showUploadStatus("❌ Upload failed: " + data.error, "error");
+            }
+          })
+          .catch((error) => {
+            showUploadStatus("❌ Error: " + error, "error");
+          })
+          .finally(() => {
+            uploadBtn.disabled = false;
+            uploadBtn.textContent = "Upload";
+          });
+      }
+
+      function showUploadStatus(message, type) {
+        const statusDiv = document.getElementById("uploadStatus");
+        statusDiv.textContent = message;
+        statusDiv.style.display = "block";
+        statusDiv.style.background = type === "success" ? "#d4edda" : "#f8d7da";
+        statusDiv.style.color = type === "success" ? "#155724" : "#721c24";
+        statusDiv.style.border =
+          type === "success" ? "1px solid #c3e6cb" : "1px solid #f5c6cb";
+      }
+
+      // Process Modal Functions
+      function openProcessModal() {
+        document.getElementById("processModal").style.display = "block";
+      }
+
+      function closeProcessModal() {
+        document.getElementById("processModal").style.display = "none";
+        document.getElementById("processStatus").style.display = "none";
+      }
+
+      function processLog() {
+        const filePath = document.getElementById("logFilePath").value;
+
+        if (!filePath) {
+          showProcessStatus("Please enter a file path", "error");
+          return;
+        }
+
+        const processBtn = document.getElementById("processBtn2");
+        processBtn.disabled = true;
+        processBtn.textContent = "Processing...";
+
+        fetch("/api/process_log", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ filepath: filePath }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.status === "success") {
+              showProcessStatus(
+                "✅ Processing completed: " + data.message,
+                "success"
+              );
+            } else {
+              showProcessStatus("❌ Processing failed: " + data.error, "error");
+            }
+          })
+          .catch((error) => {
+            showProcessStatus("❌ Error: " + error, "error");
+          })
+          .finally(() => {
+            processBtn.disabled = false;
+            processBtn.textContent = "Process";
+          });
+      }
+
+      function showProcessStatus(message, type) {
+        const statusDiv = document.getElementById("processStatus");
+        statusDiv.textContent = message;
+        statusDiv.style.display = "block";
+        statusDiv.style.background = type === "success" ? "#d4edda" : "#f8d7da";
+        statusDiv.style.color = type === "success" ? "#155724" : "#721c24";
+        statusDiv.style.border =
+          type === "success" ? "1px solid #c3e6cb" : "1px solid #f5c6cb";
+      }
+
+      // System Info Modal Functions
+      function openSystemInfoModal() {
+        document.getElementById("systemInfoModal").style.display = "block";
+        refreshSystemInfo();
+      }
+
+      function closeSystemInfoModal() {
+        document.getElementById("systemInfoModal").style.display = "none";
+      }
+
+      function refreshSystemInfo() {
+        fetch("/api/system/status")
+          .then((response) => response.json())
+          .then((data) => {
+            document.getElementById("infoStatus").textContent = data.is_running
+              ? "🟢 Running"
+              : "🔴 Stopped";
+            document.getElementById("infoUptime").textContent = formatUptime(
+              data.uptime
+            );
+            document.getElementById("infoSparkStatus").textContent =
+              data.spark_status;
+            document.getElementById("infoLogsProcessed").textContent =
+              data.logs_processed_today.toLocaleString();
+            document.getElementById("infoTotalLogs").textContent =
+              data.total_logs.toLocaleString();
+            document.getElementById("infoTotalAnomalies").textContent =
+              data.total_anomalies.toLocaleString();
+            document.getElementById("infoAnomalyRate").textContent =
+              (data.anomaly_rate * 100).toFixed(2) + "%";
+            document.getElementById("infoProcessing").textContent =
+              data.current_processing ? "🔄 Yes" : "✓ No";
+
+            if (data.last_anomaly) {
+              document.getElementById("infoLastAnomaly").innerHTML = `
+                <strong>${data.last_anomaly.service}</strong><br>
+                Score: ${data.last_anomaly.anomaly_score.toFixed(3)}<br>
+                Time: ${data.last_anomaly.timestamp}<br>
+                IP: ${data.last_anomaly.ip_address}
+              `;
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching system info:", error);
+          });
+      }
+
+      function formatUptime(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        return `${hours}h ${minutes}m ${secs}s`;
+      }
+
+      // System Control Functions
+      function toggleSystem() {
+        const btn = document.getElementById("systemToggleBtn");
+        const isRunning = btn.textContent.includes("Stop");
+
+        const endpoint = isRunning ? "/api/system/stop" : "/api/system/start";
+
+        fetch(endpoint, { method: "POST" })
+          .then((response) => response.json())
+          .then((data) => {
+            updateSystemStatus();
+          })
+          .catch((error) => {
+            console.error("Error toggling system:", error);
+          });
+      }
+
+      function updateSystemStatus() {
+        fetch("/api/system_status")
+          .then((response) => response.json())
+          .then((status) => {
+            const badge = document.getElementById("systemStatusBadge");
+            const text = document.getElementById("systemStatusText");
+            const btn = document.getElementById("systemToggleBtn");
+
+            if (status.is_running) {
+              badge.className = "status-badge online";
+              text.textContent = "Online";
+              btn.textContent = "⏹ Stop";
+            } else {
+              badge.className = "status-badge offline";
+              text.textContent = "Offline";
+              btn.textContent = "▶ Start";
+            }
+          })
+          .catch((error) => {
+            console.error("Error updating system status:", error);
+          });
+      }
+
+      // Socket event for system status updates
+      socket.on("system_status_update", (status) => {
+        updateSystemStatus();
+      });
+
+      // Update system status on page load
+      updateSystemStatus();
+
+      // Auto-refresh system status every 5 seconds
+      setInterval(updateSystemStatus, 5000);
+
+      // Close modals when clicking outside
+      window.onclick = function (event) {
+        const uploadModal = document.getElementById("uploadModal");
+        const processModal = document.getElementById("processModal");
+        const systemInfoModal = document.getElementById("systemInfoModal");
+
+        if (event.target == uploadModal) {
+          uploadModal.style.display = "none";
+        }
+        if (event.target == processModal) {
+          processModal.style.display = "none";
+        }
+        if (event.target == systemInfoModal) {
+          systemInfoModal.style.display = "none";
+        }
+      };
     </script>
   </body>
 </html>

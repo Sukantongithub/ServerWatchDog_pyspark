@@ -280,6 +280,38 @@ class SparkAnomalyDetectionSystem:
                 traceback.print_exc()
                 time.sleep(5)
     
+    def analyze_historical_logs(self, log_file):
+        """
+        Analyze historical logs for trends and patterns
+        """
+        print("Analyzing historical logs...")
+        if not os.path.exists(log_file):
+            print("No historical log file found!")
+            return
+
+        # Parse logs
+        parsed_df = self.parse_logs_spark(log_file)
+        log_count = parsed_df.count()
+        print(f"Analyzed {log_count} historical log entries.")
+
+        if log_count == 0:
+            print("No valid logs to analyze!")
+            return
+
+        # Extract features
+        feature_df = self.extract_features_spark(parsed_df)
+
+        # Aggregate statistics
+        stats_df = feature_df.groupBy("service").agg(
+            col("service"),
+            col("level_error").sum().alias("error_count"),
+            col("level_warn").sum().alias("warn_count"),
+            col("response_time").avg().alias("avg_response_time")
+        )
+
+        stats_df.show(truncate=False)
+        print("Historical log analysis completed.")
+    
     def start(self):
         """Start the Spark-based system"""
         print("\n" + "="*60)
