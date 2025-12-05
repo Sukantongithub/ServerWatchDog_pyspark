@@ -1,12 +1,12 @@
 """
 Graph Analysis using GraphX for Log Anomaly Detection
 Analyzes relationships between services, IPs, and users
-Note: Using GraphFrames (Python API for GraphX)
 """
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, count, avg, collect_list, struct, explode
+from pyspark.sql.functions import col, count, avg, collect_list, struct, explode, when, lit, sum as sql_sum
 import networkx as nx
 import json
+import os
 
 class GraphAnalyzer:
     def __init__(self, spark):
@@ -19,8 +19,6 @@ class GraphAnalyzer:
         Nodes: services, IPs, users
         Edges: interactions with weights (frequency)
         """
-        # Create vertices (nodes)
-        
         # Service nodes
         service_nodes = log_df.select(
             col("service").alias("id"),
@@ -70,19 +68,8 @@ class GraphAnalyzer:
             col("error_count")
         )
         
-        # IP -> User edges (same IP used by user)
-        ip_user_edges = log_df.groupBy("ip_address", "user").agg(
-            count("*").alias("weight")
-        ).select(
-            col("ip_address").alias("src"),
-            col("user").alias("dst"),
-            col("weight"),
-            lit(None).alias("avg_response_time"),
-            lit(0).alias("error_count")
-        )
-        
         # Combine all edges
-        edges = ip_service_edges.union(user_service_edges).union(ip_user_edges)
+        edges = ip_service_edges.union(user_service_edges)
         
         return vertices, edges
     
@@ -117,7 +104,7 @@ class GraphAnalyzer:
         
         # IPs with unusually high connections
         ip_stats = node_stats.filter(col("type") == "ip")
-        if ip_stats.count() > 0:
+        if (ip_stats.count() > 0):
             avg_out_degree = ip_stats.agg(avg("out_degree")).collect()[0][0] or 1
             
             node_stats = node_stats.withColumn(
@@ -181,35 +168,86 @@ class GraphAnalyzer:
         
         return suspicious_ips, targeted_services
     
-    def export_graph_for_visualization(self, vertices, edges, output_path="graph_data.json"):
+    def export_graph_for_visualization(self, vertices, edges, output_path="static/graph_data.json"):
         """
-        Export graph data for web visualization
+        Export graph data for web visualization with improved format
         """
-        # Convert to lists
-        vertices_list = vertices.select("id", "type").collect()
-        edges_list = edges.select("src", "dst", "weight").collect()
+        try:
+            # Convert to lists
+            vertices_list = vertices.collect()
+            edges_list = edges.collect()
+            
+            # Create nodes with improved structure
+            nodes = []
+            node_ids = set()
+            
+            for row in vertices_list:
+                node_id = str(row.id) if row.id else "unknown"
+                node_type = str(row.type) if row.type else "unknown"
+                
+                nodes.append({
+                    "id": node_id,
+                    "type": node_type,
+                    "label": node_id
+                })
+                node_ids.add(node_id)
+            
+            # Create links with improved structure
+            links = []
+            for row in edges_list:
+                src = str(row.src) if row.src else None
+                dst = str(row.dst) if row.dst else None
+                weight = int(row.weight) if row.weight else 1
+                
+                # Only add links where both nodes exist
+                if src and dst and src in node_ids and dst in node_ids:
+                    links.append({
+                        "source": src,
+                        "target": dst,
+                        "value": max(weight, 1)
+                    })
+            
+            graph_data = {
+                "nodes": nodes[:150],  # Increased limit for visualization
+                "links": links[:300]
+            }
+            
+            # Ensure directory exists
+            os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
+            
+            # Write with better formatting
+            with open(output_path, 'w') as f:
+                json.dump(graph_data, f, indent=2, ensure_ascii=False)
+            
+            print(f"✅ Graph data exported to {output_path}")
+            print(f"   Nodes: {len(graph_data['nodes'])}")
+            print(f"   Links: {len(graph_data['links'])}")
+            return graph_data
         
-        nodes = [{"id": row.id, "type": row.type} for row in vertices_list]
-        links = [{"source": row.src, "target": row.dst, "value": int(row.weight)} 
-                 for row in edges_list]
-        
-        graph_data = {
-            "nodes": nodes[:100],  # Limit for visualization
-            "links": links[:200]
-        }
-        
-        import os
-        os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
-        
-        with open(output_path, 'w') as f:
-            json.dump(graph_data, f, indent=2)
-        
-        print(f"Graph data exported to {output_path}")
-        return graph_data
+        except Exception as e:
+            print(f"❌ Error exporting graph data: {e}")
+            import traceback
+            traceback.print_exc()
+            # Create empty graph structure on error
+            empty_graph = {"nodes": [], "links": []}
+            os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
+            with open(output_path, 'w') as f:
+                json.dump(empty_graph, f)
+            return empty_graph
+    
+    def update_graph_periodically(self, log_df, output_path="static/graph_data.json"):
+        """
+        Update graph data from log dataframe
+        """
+        try:
+            vertices, edges = self.create_service_graph(log_df)
+            return self.export_graph_for_visualization(vertices, edges, output_path)
+        except Exception as e:
+            print(f"❌ Error updating graph: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
 
-
-# Import missing functions
-from pyspark.sql.functions import lit, when, sum as sql_sum
 
 if __name__ == "__main__":
     from log_parser import create_spark_session, LogParser

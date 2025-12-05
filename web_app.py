@@ -263,6 +263,105 @@ def spark_ui_link():
         "port": SPARK_UI_PORT
     })
 
+@app.route('/api/logs')
+def get_logs():
+    """Get list of all generated log files with metadata"""
+    try:
+        logs_dir = 'logs'
+        logs_list = []
+        
+        # Check both uploads and logs directories
+        for directory in [app.config['UPLOAD_FOLDER'], logs_dir]:
+            if os.path.exists(directory):
+                for filename in os.listdir(directory):
+                    filepath = os.path.join(directory, filename)
+                    
+                    # Only include files
+                    if os.path.isfile(filepath):
+                        try:
+                            # Get file stats
+                            file_stat = os.stat(filepath)
+                            size_bytes = file_stat.st_size
+                            created_timestamp = file_stat.st_mtime
+                            
+                            # Format size
+                            if size_bytes < 1024:
+                                size_str = f"{size_bytes} B"
+                            elif size_bytes < 1024 * 1024:
+                                size_str = f"{size_bytes / 1024:.2f} KB"
+                            else:
+                                size_str = f"{size_bytes / (1024 * 1024):.2f} MB"
+                            
+                            # Format creation date
+                            created_date = datetime.fromtimestamp(created_timestamp).strftime("%Y-%m-%d %H:%M:%S")
+                            
+                            logs_list.append({
+                                "filename": filename,
+                                "size": size_str,
+                                "created": created_date,
+                                "download_url": f"/api/logs/download/{filename}",
+                                "view_url": f"/api/logs/view/{filename}",
+                                "path": filepath
+                            })
+                        except Exception as e:
+                            print(f"Error processing file {filename}: {e}")
+                            continue
+        
+        # Sort by creation date (newest first)
+        logs_list.sort(key=lambda x: x['created'], reverse=True)
+        
+        return jsonify(logs_list)
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/logs/download/<filename>')
+def download_log(filename):
+    """Download a log file"""
+    try:
+        # Prevent directory traversal attacks
+        if '..' in filename or '/' in filename or '\\' in filename:
+            return jsonify({"error": "Invalid filename"}), 400
+        
+        # Check both directories
+        for directory in [app.config['UPLOAD_FOLDER'], 'logs']:
+            filepath = os.path.join(directory, filename)
+            if os.path.exists(filepath) and os.path.isfile(filepath):
+                return send_file(filepath, as_attachment=True, download_name=filename)
+        
+        return jsonify({"error": "File not found"}), 404
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/logs/view/<filename>')
+def view_log(filename):
+    """View a log file content"""
+    try:
+        # Prevent directory traversal attacks
+        if '..' in filename or '/' in filename or '\\' in filename:
+            return jsonify({"error": "Invalid filename"}), 400
+        
+        # Check both directories
+        for directory in [app.config['UPLOAD_FOLDER'], 'logs']:
+            filepath = os.path.join(directory, filename)
+            if os.path.exists(filepath) and os.path.isfile(filepath):
+                try:
+                    with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                        content = f.read()
+                    return jsonify({
+                        "filename": filename,
+                        "content": content,
+                        "lines": len(content.split('\n'))
+                    })
+                except Exception as e:
+                    return jsonify({"error": f"Could not read file: {str(e)}"}), 500
+        
+        return jsonify({"error": "File not found"}), 404
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 def add_anomaly(anomaly_data):
     """Add a new anomaly to the system"""
     with stats_lock:

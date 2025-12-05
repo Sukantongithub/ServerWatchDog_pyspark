@@ -10,6 +10,7 @@ from log_generator import LogGenerator
 from web_app import add_anomaly, update_statistics, app, socketio
 from ngrok_tunnel import NgrokTunnel
 from config import LOG_FILE_PATH
+from graph_analyzer import GraphAnalyzer
 
 # PySpark imports
 from pyspark.sql import SparkSession
@@ -27,6 +28,7 @@ class SparkAnomalyDetectionSystem:
         self.running = False
         self.model = None
         self.scaler = None
+        self.graph_analyzer = None
         
     def initialize_spark(self):
         """Initialize Spark Session"""
@@ -51,6 +53,9 @@ class SparkAnomalyDetectionSystem:
         
         # Initialize Spark
         self.initialize_spark()
+        
+        # Initialize graph analyzer
+        self.graph_analyzer = GraphAnalyzer(self.spark)
         
         # Initialize other components
         self.log_generator = LogGenerator()
@@ -221,6 +226,7 @@ class SparkAnomalyDetectionSystem:
         print("Starting Spark log processing loop...")
         
         last_count = 0
+        graph_update_counter = 0
         
         while self.running:
             try:
@@ -271,6 +277,20 @@ class SparkAnomalyDetectionSystem:
                 # Update statistics
                 update_statistics(current_count - last_count)
                 last_count = current_count
+                
+                # Update graph every 30 seconds (6 iterations at 5 second intervals)
+                graph_update_counter += 1
+                if graph_update_counter >= 6:
+                    try:
+                        print("📊 Updating network graph visualization...")
+                        self.graph_analyzer.update_graph_periodically(
+                            feature_df, 
+                            "static/graph_data.json"
+                        )
+                        socketio.emit('graph_data_updated', {"status": "success"})
+                        graph_update_counter = 0
+                    except Exception as e:
+                        print(f"⚠️ Graph update warning: {e}")
                 
                 time.sleep(5)
                 

@@ -7,6 +7,10 @@
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
     <style>
       * {
         margin: 0;
@@ -16,7 +20,7 @@
 
       body {
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #1e3a8a 0%, #0f766e 100%);
         color: #333;
         padding: 20px;
       }
@@ -54,7 +58,7 @@
       }
 
       .stat-card h3 {
-        color: #667eea;
+        color: #0f766e;
         font-size: 0.9em;
         text-transform: uppercase;
         margin-bottom: 10px;
@@ -67,15 +71,15 @@
       }
 
       .stat-card.critical {
-        border-left: 5px solid #e74c3c;
+        border-left: 5px solid #dc2626;
       }
 
       .stat-card.warning {
-        border-left: 5px solid #f39c12;
+        border-left: 5px solid #f59e0b;
       }
 
       .stat-card.success {
-        border-left: 5px solid #27ae60;
+        border-left: 5px solid #10b981;
       }
 
       .charts-container {
@@ -93,7 +97,7 @@
       }
 
       .chart-card h2 {
-        color: #667eea;
+        color: #0f766e;
         margin-bottom: 15px;
         font-size: 1.3em;
       }
@@ -112,7 +116,7 @@
       }
 
       th {
-        background: #667eea;
+        background: #0f766e;
         color: white;
         padding: 12px;
         text-align: left;
@@ -130,23 +134,23 @@
       }
 
       .anomaly-high {
-        background: #fee;
-        color: #c00;
+        background: #fee2e2;
+        color: #991b1b;
         font-weight: bold;
       }
 
       .anomaly-medium {
-        background: #ffd;
-        color: #c60;
+        background: #fef3c7;
+        color: #92400e;
       }
 
       .anomaly-low {
-        background: #efe;
-        color: #060;
+        background: #d1fae5;
+        color: #065f46;
       }
 
       .alert {
-        background: #e74c3c;
+        background: #dc2626;
         color: white;
         padding: 15px;
         border-radius: 10px;
@@ -174,7 +178,7 @@
       }
 
       .status-online {
-        background: #27ae60;
+        background: #10b981;
       }
 
       @keyframes blink {
@@ -196,6 +200,231 @@
         border-radius: 10px;
       }
 
+      /* Enhanced Network Graph Styles */
+      .graph-container {
+        position: relative;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      #networkGraph {
+        display: block;
+        width: 100%;
+        height: 600px;
+        background: white;
+        border-radius: 10px;
+      }
+
+      .node {
+        cursor: pointer;
+        stroke: white;
+        stroke-width: 2px;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        transition: all 0.3s ease;
+      }
+
+      .node:hover {
+        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+        stroke-width: 3px;
+      }
+
+      .node-service {
+        fill: #0f766e;
+      }
+
+      .node-ip {
+        fill: #dc2626;
+      }
+
+      .node-user {
+        fill: #10b981;
+      }
+
+      .link {
+        stroke: #999;
+        stroke-opacity: 0.6;
+        stroke-linecap: round;
+        transition: all 0.3s ease;
+      }
+
+      .link:hover {
+        stroke-opacity: 1;
+        stroke-width: 3px;
+      }
+
+      .link-anomaly {
+        stroke: #dc2626;
+        stroke-opacity: 0.8;
+      }
+
+      .node-label {
+        font-size: 11px;
+        font-weight: bold;
+        pointer-events: none;
+        text-anchor: middle;
+        dominant-baseline: middle;
+        fill: white;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      }
+
+      .tooltip {
+        position: absolute;
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        pointer-events: none;
+        z-index: 1000;
+        max-width: 250px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        border-left: 3px solid #0f766e;
+        line-height: 1.5;
+      }
+
+      .tooltip.ip-tooltip {
+        border-left-color: #dc2626;
+      }
+
+      .tooltip.user-tooltip {
+        border-left-color: #10b981;
+      }
+
+      .tooltip-header {
+        font-weight: bold;
+        margin-bottom: 5px;
+        font-size: 13px;
+      }
+
+      .tooltip-content {
+        font-size: 11px;
+      }
+
+      .graph-stats {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+      }
+
+      .graph-stat-item {
+        background: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        border-left: 4px solid #0f766e;
+        flex: 1;
+        min-width: 150px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .graph-stat-item.services {
+        border-left-color: #0f766e;
+      }
+
+      .graph-stat-item.ips {
+        border-left-color: #dc2626;
+      }
+
+      .graph-stat-item.users {
+        border-left-color: #10b981;
+      }
+
+      .graph-stat-item.connections {
+        border-left-color: #f59e0b;
+      }
+
+      .graph-stat-label {
+        font-size: 0.85em;
+        color: #666;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+      }
+
+      .graph-stat-value {
+        font-size: 1.8em;
+        font-weight: bold;
+        color: #333;
+      }
+
+      .graph-legend {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9em;
+      }
+
+      .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .legend-color.service {
+        background: #0f766e;
+      }
+
+      .legend-color.ip {
+        background: #dc2626;
+      }
+
+      .legend-color.user {
+        background: #10b981;
+      }
+
+      .graph-controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+      }
+
+      .graph-btn {
+        background: #0f766e;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.9em;
+        transition: all 0.3s ease;
+      }
+
+      .graph-btn:hover {
+        background: #0d5a55;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(15, 118, 110, 0.4);
+      }
+
+      .graph-btn:active {
+        transform: translateY(0);
+      }
+
+      .graph-info {
+        background: #f0fdfa;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border-left: 4px solid #0f766e;
+        color: #333;
+        font-size: 0.9em;
+      }
+
+      .graph-info strong {
+        color: #0f766e;
+      }
+
       .connection-status {
         position: fixed;
         top: 20px;
@@ -205,6 +434,77 @@
         border-radius: 25px;
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         font-size: 0.9em;
+      }
+
+      /* Separate Alert Container */
+      #alertContainer {
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        width: 350px;
+        max-height: 400px;
+        overflow-y: auto;
+        z-index: 2001;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      #alertContainer .alert {
+        position: relative;
+        background: #dc2626;
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        animation: slideIn 0.3s ease;
+        margin-bottom: 0;
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      #alertContainer .alert-close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        cursor: pointer;
+        font-size: 1.2em;
+        color: white;
+        background: rgba(0, 0, 0, 0.2);
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+      }
+
+      #alertContainer .alert-close:hover {
+        background: rgba(0, 0, 0, 0.4);
+      }
+
+      #alertContainer .alert-header {
+        font-weight: bold;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      #alertContainer .alert-content {
+        font-size: 0.9em;
+        line-height: 1.4;
       }
 
       header {
@@ -218,7 +518,7 @@
 
       header h1 {
         margin: 0;
-        color: #667eea;
+        color: #0f766e;
         text-shadow: none;
       }
 
@@ -259,7 +559,7 @@
 
       /* Navigation Bar Styles */
       nav {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #1e3a8a 0%, #0f766e 100%);
         padding: 0;
         margin: -20px -20px 20px -20px;
         border-radius: 0;
@@ -327,15 +627,15 @@
       }
 
       .status-badge.online {
-        background: #27ae60;
+        background: #10b981;
       }
 
       .status-badge.offline {
-        background: #e74c3c;
+        background: #dc2626;
       }
 
       .status-badge.processing {
-        background: #f39c12;
+        background: #f59e0b;
       }
 
       .upload-btn,
@@ -362,7 +662,7 @@
 
       .upload-btn.processing,
       .process-btn.processing {
-        background: #f39c12;
+        background: #f59e0b;
         opacity: 0.7;
       }
 
@@ -391,7 +691,7 @@
       .modal-header {
         font-size: 1.5em;
         font-weight: bold;
-        color: #667eea;
+        color: #0f766e;
         margin-bottom: 20px;
       }
 
@@ -443,8 +743,8 @@
       .form-group input[type="text"]:focus,
       .form-group textarea:focus {
         outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 5px #667eea;
+        border-color: #0f766e;
+        box-shadow: 0 0 5px #0f766e;
       }
 
       .btn {
@@ -457,12 +757,12 @@
       }
 
       .btn-primary {
-        background: #667eea;
+        background: #0f766e;
         color: white;
       }
 
       .btn-primary:hover {
-        background: #5568d3;
+        background: #0d5a55;
       }
 
       .btn-secondary {
@@ -475,21 +775,21 @@
       }
 
       .btn-success {
-        background: #27ae60;
+        background: #10b981;
         color: white;
       }
 
       .btn-success:hover {
-        background: #229954;
+        background: #059669;
       }
 
       .btn-danger {
-        background: #e74c3c;
+        background: #dc2626;
         color: white;
       }
 
       .btn-danger:hover {
-        background: #c0392b;
+        background: #b91c1c;
       }
 
       .system-info {
@@ -509,7 +809,7 @@
 
       .system-info-label {
         font-weight: bold;
-        color: #667eea;
+        color: #0f766e;
       }
 
       .system-info-value {
@@ -527,7 +827,7 @@
 
       .progress-fill {
         height: 100%;
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(90deg, #0f766e 0%, #10b981 100%);
         width: 0%;
         transition: width 0.3s ease;
       }
@@ -550,7 +850,7 @@
       }
 
       .file-item button {
-        background: #667eea;
+        background: #0f766e;
         color: white;
         border: none;
         padding: 5px 10px;
@@ -560,7 +860,219 @@
       }
 
       .file-item button:hover {
-        background: #5568d3;
+        background: #0d5a55;
+      }
+
+      .fa {
+        margin-right: 5px;
+      }
+
+      /* Notification Icon Styles */
+      .notification-icon {
+        position: relative;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+      }
+
+      .notification-icon:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .notification-badge {
+        position: absolute;
+        top: -5px;
+        right: 0px;
+        background: #dc2626;
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75em;
+        font-weight: bold;
+        border: 2px solid #1e3a8a;
+        animation: badgePulse 2s infinite;
+      }
+
+      @keyframes badgePulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+        }
+        50% {
+          box-shadow: 0 0 0 8px rgba(220, 38, 38, 0);
+        }
+      }
+
+      /* Notification Panel */
+      .notification-panel {
+        position: fixed;
+        top: 60px;
+        right: 20px;
+        width: 400px;
+        max-height: 600px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        z-index: 2002;
+        display: none;
+        flex-direction: column;
+        border: 1px solid #e5e7eb;
+      }
+
+      .notification-panel.active {
+        display: flex;
+      }
+
+      .notification-panel-header {
+        padding: 15px 20px;
+        border-bottom: 2px solid #f0f9ff;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(135deg, #1e3a8a 0%, #0f766e 100%);
+        color: white;
+        border-radius: 8px 8px 0 0;
+      }
+
+      .notification-panel-header h3 {
+        margin: 0;
+        font-size: 1.1em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .notification-panel-header .clear-btn {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        padding: 5px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9em;
+        transition: all 0.2s;
+      }
+
+      .notification-panel-header .clear-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      .notification-panel-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0;
+      }
+
+      .notification-item {
+        padding: 15px 20px;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        gap: 12px;
+        transition: background 0.2s;
+        cursor: pointer;
+      }
+
+      .notification-item:hover {
+        background: #f8fafc;
+      }
+
+      .notification-item:last-child {
+        border-bottom: none;
+      }
+
+      .notification-item-icon {
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #fee2e2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #dc2626;
+        font-size: 1.2em;
+      }
+
+      .notification-item-content {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .notification-item-title {
+        font-weight: 600;
+        color: #1f2937;
+        font-size: 0.95em;
+        margin-bottom: 4px;
+      }
+
+      .notification-item-message {
+        font-size: 0.85em;
+        color: #6b7280;
+        margin-bottom: 4px;
+      }
+
+      .notification-item-details {
+        font-size: 0.8em;
+        color: #9ca3af;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .notification-item-time {
+        font-size: 0.8em;
+        color: #9ca3af;
+        flex-shrink: 0;
+      }
+
+      .notification-item-close {
+        flex-shrink: 0;
+        background: none;
+        border: none;
+        color: #d1d5db;
+        cursor: pointer;
+        font-size: 1.2em;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s;
+      }
+
+      .notification-item-close:hover {
+        color: #6b7280;
+      }
+
+      .notification-empty {
+        padding: 40px 20px;
+        text-align: center;
+        color: #9ca3af;
+      }
+
+      .notification-empty i {
+        font-size: 2.5em;
+        display: block;
+        margin-bottom: 10px;
+        opacity: 0.5;
+      }
+
+      @media (max-width: 768px) {
+        .notification-panel {
+          width: calc(100vw - 40px);
+          right: 20px;
+          left: 20px;
+        }
       }
     </style>
   </head>
@@ -569,24 +1081,20 @@
       <!-- NAVIGATION BAR -->
       <nav>
         <div class="navbar-container">
-          <div class="navbar-brand">🔍 Anomaly Detection</div>
+          <div class="navbar-brand">
+            <i class="fas fa-search"></i> Anomaly Detection
+          </div>
 
           <div class="navbar-menu">
-            <!-- System Status -->
-            <div class="nav-item">
-              <span class="status-badge" id="systemStatusBadge"></span>
-              <span id="systemStatusText">Offline</span>
-            </div>
-
-            <!-- System Controls -->
-            <button
-              class="system-btn"
-              id="systemToggleBtn"
-              onclick="toggleSystem()"
-              title="Start/Stop System"
+            <!-- Notification Icon -->
+            <div
+              class="notification-icon"
+              onclick="toggleNotificationPanel()"
+              title="View Alerts"
             >
-              ▶ Start
-            </button>
+              <i class="fas fa-bell"></i>
+              <span class="notification-badge" id="notificationBadge">0</span>
+            </div>
 
             <!-- Upload File -->
             <button
@@ -594,17 +1102,17 @@
               onclick="openUploadModal()"
               title="Upload Log File"
             >
-              📤 Upload
+              <i class="fas fa-upload"></i> Upload
             </button>
 
-            <!-- Process Log -->
+            <!-- Logs -->
             <button
               class="process-btn"
-              id="processBtn"
-              onclick="openProcessModal()"
-              title="Process Log File"
+              id="logsBtn"
+              onclick="openLogsModal()"
+              title="View Logs"
             >
-              ⚙ Process
+              <i class="fas fa-file-alt"></i> Logs
             </button>
 
             <!-- Spark UI Link -->
@@ -614,54 +1122,58 @@
               target="_blank"
               title="Open Spark Web UI"
             >
-              🔥 Spark UI
+              <i class="fas fa-fire"></i> Spark UI
             </a>
-
-            <!-- System Info -->
-            <button
-              class="nav-item"
-              onclick="openSystemInfoModal()"
-              style="background: rgba(255, 255, 255, 0.2)"
-              title="View System Information"
-            >
-              ℹ System
-            </button>
           </div>
         </div>
       </nav>
 
       <!-- PAGE HEADER -->
       <header>
-        <h1>🔍 Real-time Log Anomaly Detection Dashboard</h1>
+        <h1>
+          <i class="fas fa-search"></i> Real-time Log Anomaly Detection
+          Dashboard
+        </h1>
         <p>
           Monitor and analyze log anomalies in real-time with advanced machine
           learning
         </p>
       </header>
 
-      <div class="connection-status">
-        <span class="status-indicator status-online"></span>
-        <span id="connectionStatus">Connected</span>
+      <!-- NOTIFICATION PANEL -->
+      <div id="notificationPanel" class="notification-panel">
+        <div class="notification-panel-header">
+          <h3><i class="fas fa-bell"></i> Alerts</h3>
+          <button class="clear-btn" onclick="clearAllNotifications()">
+            Clear All
+          </button>
+        </div>
+        <div class="notification-panel-content" id="notificationContent">
+          <div class="notification-empty">
+            <i class="fas fa-inbox"></i>
+            <p>No alerts yet</p>
+          </div>
+        </div>
       </div>
-
-      <div id="alertContainer"></div>
 
       <!-- STATISTICS SECTION -->
       <div class="stats-grid">
         <div class="stat-card success">
-          <h3>Total Logs Processed</h3>
+          <h3><i class="fas fa-check-circle"></i> Total Logs Processed</h3>
           <div class="stat-value" id="totalLogs">0</div>
         </div>
         <div class="stat-card warning">
-          <h3>Anomalies Detected</h3>
+          <h3>
+            <i class="fas fa-exclamation-triangle"></i> Anomalies Detected
+          </h3>
           <div class="stat-value" id="totalAnomalies">0</div>
         </div>
         <div class="stat-card critical">
-          <h3>Anomaly Rate</h3>
+          <h3><i class="fas fa-percentage"></i> Anomaly Rate</h3>
           <div class="stat-value" id="anomalyRate">0%</div>
         </div>
         <div class="stat-card critical">
-          <h3>Critical Alerts</h3>
+          <h3><i class="fas fa-bell"></i> Critical Alerts</h3>
           <div class="stat-value" id="criticalAlerts">0</div>
         </div>
       </div>
@@ -669,27 +1181,106 @@
       <!-- CHARTS SECTION -->
       <div class="charts-container">
         <div class="chart-card">
-          <h2>📊 Anomaly Timeline</h2>
+          <h2><i class="fas fa-chart-line"></i> Anomaly Timeline</h2>
           <div id="timelineChart"></div>
         </div>
         <div class="chart-card">
-          <h2>🎯 Anomaly Score Distribution</h2>
+          <h2><i class="fas fa-chart-bar"></i> Anomaly Score Distribution</h2>
           <div id="scoreChart"></div>
         </div>
         <div class="chart-card">
-          <h2>📊 Anomaly Distribution by Service</h2>
+          <h2>
+            <i class="fas fa-pie-chart"></i> Anomaly Distribution by Service
+          </h2>
           <div id="servicePieChart"></div>
         </div>
       </div>
 
       <div class="chart-card" style="margin-bottom: 30px">
-        <h2>🕸️ Network Graph - Service Interactions</h2>
-        <div id="networkGraph"></div>
+        <h2>
+          <i class="fas fa-project-diagram"></i> Network Graph - Service
+          Interactions
+        </h2>
+
+        <!-- Graph Statistics -->
+        <div class="graph-stats">
+          <div class="graph-stat-item services">
+            <div class="graph-stat-label">
+              <i class="fas fa-server"></i> Services
+            </div>
+            <div class="graph-stat-value" id="graphServiceCount">0</div>
+          </div>
+          <div class="graph-stat-item ips">
+            <div class="graph-stat-label">
+              <i class="fas fa-desktop"></i> IP Addresses
+            </div>
+            <div class="graph-stat-value" id="graphIpCount">0</div>
+          </div>
+          <div class="graph-stat-item users">
+            <div class="graph-stat-label">
+              <i class="fas fa-users"></i> Users
+            </div>
+            <div class="graph-stat-value" id="graphUserCount">0</div>
+          </div>
+          <div class="graph-stat-item connections">
+            <div class="graph-stat-label">
+              <i class="fas fa-link"></i> Connections
+            </div>
+            <div class="graph-stat-value" id="graphConnectionCount">0</div>
+          </div>
+        </div>
+
+        <!-- Graph Legend -->
+        <div class="graph-legend">
+          <div class="legend-item">
+            <div class="legend-color service"></div>
+            <span>Services</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color ip"></div>
+            <span>IP Addresses</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color user"></div>
+            <span>Users</span>
+          </div>
+        </div>
+
+        <!-- Graph Controls -->
+        <div class="graph-controls">
+          <button class="graph-btn" onclick="resetGraphZoom()">
+            <i class="fas fa-redo"></i> Reset View
+          </button>
+          <button class="graph-btn" onclick="pauseGraphSimulation()">
+            <i class="fas fa-pause"></i> Pause
+          </button>
+          <button class="graph-btn" onclick="resumeGraphSimulation()">
+            <i class="fas fa-play"></i> Resume
+          </button>
+          <button class="graph-btn" onclick="zoomGraphIn()">
+            <i class="fas fa-search-plus"></i> Zoom In
+          </button>
+          <button class="graph-btn" onclick="zoomGraphOut()">
+            <i class="fas fa-search-minus"></i> Zoom Out
+          </button>
+        </div>
+
+        <!-- Graph Info -->
+        <div class="graph-info">
+          <i class="fas fa-lightbulb"></i> <strong>Tip:</strong> Drag nodes to
+          reposition them. Hover over nodes and links for details. Thicker lines
+          indicate higher interaction frequency.
+        </div>
+
+        <!-- SVG Container -->
+        <div id="networkGraph" style="position: relative"></div>
       </div>
 
       <!-- ANOMALIES TABLE SECTION -->
       <div id="anomalyTable">
-        <h2 style="color: #667eea; margin-bottom: 15px">🚨 Recent Anomalies</h2>
+        <h2 style="color: #0f766e; margin-bottom: 15px">
+          <i class="fas fa-exclamation-circle"></i> Recent Anomalies
+        </h2>
         <table>
           <thead>
             <tr>
@@ -727,7 +1318,9 @@
     <div id="uploadModal" class="modal">
       <div class="modal-content">
         <span class="close-btn" onclick="closeUploadModal()">&times;</span>
-        <div class="modal-header">📤 Upload Log File</div>
+        <div class="modal-header">
+          <i class="fas fa-upload"></i> Upload Log File
+        </div>
         <div class="modal-body">
           <div class="form-group">
             <label for="logFile">Select Log File (.log or .txt)</label>
@@ -758,7 +1351,9 @@
     <div id="processModal" class="modal">
       <div class="modal-content">
         <span class="close-btn" onclick="closeProcessModal()">&times;</span>
-        <div class="modal-header">⚙ Process Log File</div>
+        <div class="modal-header">
+          <i class="fas fa-cog"></i> Process Log File
+        </div>
         <div class="modal-body">
           <div class="form-group">
             <label for="logFilePath">Log File Path</label>
@@ -795,11 +1390,104 @@
       </div>
     </div>
 
+    <!-- LOGS MODAL -->
+    <div id="logsModal" class="modal">
+      <div class="modal-content" style="max-width: 900px; margin: 5% auto">
+        <span class="close-btn" onclick="closeLogsModal()">&times;</span>
+        <div class="modal-header">
+          <i class="fas fa-file-alt"></i> Generated Logs
+        </div>
+        <div class="modal-body" style="max-height: 600px; overflow-y: auto">
+          <div id="logsContent" style="display: none">
+            <table style="width: 100%; border-collapse: collapse">
+              <thead>
+                <tr
+                  style="
+                    background: #0f766e;
+                    color: white;
+                    position: sticky;
+                    top: 0;
+                  "
+                >
+                  <th
+                    style="
+                      padding: 12px;
+                      text-align: left;
+                      border: 1px solid #ddd;
+                    "
+                  >
+                    Filename
+                  </th>
+                  <th
+                    style="
+                      padding: 12px;
+                      text-align: left;
+                      border: 1px solid #ddd;
+                    "
+                  >
+                    Size
+                  </th>
+                  <th
+                    style="
+                      padding: 12px;
+                      text-align: left;
+                      border: 1px solid #ddd;
+                    "
+                  >
+                    Created
+                  </th>
+                  <th
+                    style="
+                      padding: 12px;
+                      text-align: center;
+                      border: 1px solid #ddd;
+                    "
+                  >
+                    Action
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="logsTableBody"></tbody>
+            </table>
+          </div>
+          <div
+            id="logsEmpty"
+            style="text-align: center; padding: 40px; color: #999"
+          >
+            <i
+              class="fas fa-inbox"
+              style="
+                font-size: 2.5em;
+                margin-bottom: 10px;
+                display: block;
+                opacity: 0.5;
+              "
+            ></i>
+            <p>No logs found</p>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeLogsModal()">
+            Close
+          </button>
+          <button
+            class="btn btn-primary"
+            onclick="refreshLogs()"
+            style="display: flex; align-items: center; gap: 8px"
+          >
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- SYSTEM INFO MODAL -->
     <div id="systemInfoModal" class="modal">
       <div class="modal-content">
         <span class="close-btn" onclick="closeSystemInfoModal()">&times;</span>
-        <div class="modal-header">ℹ System Information</div>
+        <div class="modal-header">
+          <i class="fas fa-info-circle"></i> System Information
+        </div>
         <div class="modal-body">
           <div class="system-info">
             <div class="system-info-item">
@@ -880,14 +1568,11 @@
 
       // Socket event handlers
       socket.on("connect", () => {
-        document.getElementById("connectionStatus").textContent = "Connected";
         console.log("Connected to server");
         updateLastUpdated();
       });
 
       socket.on("disconnect", () => {
-        document.getElementById("connectionStatus").textContent =
-          "Disconnected";
         console.log("Disconnected from server");
       });
 
@@ -955,22 +1640,10 @@
 
       // Show critical alert
       function showAlert(anomaly) {
-        const alertContainer = document.getElementById("alertContainer");
-        const alert = document.createElement("div");
-        alert.className = "alert";
-        alert.innerHTML = `
-                <strong>⚠️ CRITICAL ANOMALY DETECTED!</strong><br>
-                Service: ${
-                  anomaly.service
-                } | Score: ${anomaly.anomaly_score.toFixed(3)} | IP: ${
-          anomaly.ip_address
+        // Alerts now only display in notification panel
+        if (anomaly.anomaly_score > 0.8) {
+          addNotification(anomaly);
         }
-            `;
-        alertContainer.appendChild(alert);
-
-        setTimeout(() => {
-          alert.remove();
-        }, 10000);
       }
 
       // Update score distribution chart
@@ -979,7 +1652,7 @@
           x: anomalyScores,
           type: "histogram",
           marker: {
-            color: "#667eea",
+            color: "#0f766e",
           },
           nbinsx: 20,
         };
@@ -1004,8 +1677,8 @@
               y: data.counts,
               type: "scatter",
               mode: "lines+markers",
-              marker: { color: "#e74c3c" },
-              line: { color: "#e74c3c", width: 2 },
+              marker: { color: "#dc2626" },
+              line: { color: "#dc2626", width: 2 },
             };
 
             const layout = {
@@ -1022,97 +1695,406 @@
       }
 
       // Load network graph
+      let networkGraphSimulation = null;
+      let networkGraphPaused = false;
+      let networkGraphZoom = null;
+
       function loadNetworkGraph() {
         fetch("/api/graph_data")
           .then((response) => response.json())
           .then((data) => {
-            if (!data.nodes || data.nodes.length === 0) {
+            console.log("📊 Graph data received:", data);
+
+            if (!data || !data.nodes || data.nodes.length === 0) {
+              console.warn("⚠️ No graph data available");
               document.getElementById("networkGraph").innerHTML =
-                '<p style="text-align: center; padding: 50px; color: #999;">Graph data not available yet</p>';
+                '<p style="text-align: center; padding: 50px; color: #999;">📊 Loading graph visualization...</p>';
               return;
             }
 
-            const width = document.getElementById("networkGraph").clientWidth;
-            const height = 500;
+            console.log(
+              `✅ Rendering graph with ${data.nodes.length} nodes and ${data.links.length} links`
+            );
+            renderEnhancedNetworkGraph(data);
+            updateGraphStatistics(data);
+          })
+          .catch((error) => {
+            console.error("❌ Error loading graph:", error);
+            document.getElementById("networkGraph").innerHTML =
+              '<p style="text-align: center; padding: 50px; color: red;">Error loading graph. Check console for details.</p>';
+          });
+      }
 
-            const svg = d3
-              .select("#networkGraph")
-              .html("")
-              .append("svg")
-              .attr("width", width)
-              .attr("height", height);
+      function renderEnhancedNetworkGraph(data) {
+        try {
+          const container = document.getElementById("networkGraph");
+          const width = container.clientWidth || 800;
+          const height = 600;
 
-            const simulation = d3
-              .forceSimulation(data.nodes)
-              .force(
-                "link",
-                d3
-                  .forceLink(data.links)
-                  .id((d) => d.id)
-                  .distance(100)
-              )
-              .force("charge", d3.forceManyBody().strength(-300))
-              .force("center", d3.forceCenter(width / 2, height / 2));
+          console.log(`🎨 Creating SVG: ${width}x${height}`);
 
-            const link = svg
-              .append("g")
-              .selectAll("line")
-              .data(data.links)
-              .enter()
-              .append("line")
-              .attr("stroke", "#999")
-              .attr("stroke-opacity", 0.6)
-              .attr("stroke-width", (d) => Math.sqrt(d.value));
+          // Clear previous content
+          container.innerHTML = "";
 
-            const node = svg
-              .append("g")
-              .selectAll("circle")
-              .data(data.nodes)
-              .enter()
-              .append("circle")
-              .attr("r", 8)
-              .attr("fill", (d) => {
-                if (d.type === "service") return "#667eea";
-                if (d.type === "ip") return "#e74c3c";
-                return "#27ae60";
-              })
-              .call(
-                d3
-                  .drag()
-                  .on("start", dragstarted)
-                  .on("drag", dragged)
-                  .on("end", dragended)
+          // Create a set of valid node IDs for faster lookup
+          const validNodeIds = new Set(data.nodes.map((n) => n.id));
+          console.log(`📋 Valid node IDs: ${validNodeIds.size}`);
+
+          // Filter links to only include those with valid source and target nodes
+          const validLinks = data.links.filter((link) => {
+            const sourceId = link.source.id || link.source;
+            const targetId = link.target.id || link.target;
+            const isValid =
+              validNodeIds.has(sourceId) && validNodeIds.has(targetId);
+            if (!isValid) {
+              console.warn(
+                `⚠️ Skipping invalid link: ${sourceId} -> ${targetId}`
               );
+            }
+            return isValid;
+          });
 
-            node.append("title").text((d) => d.id);
+          console.log(
+            `✅ Filtered links: ${validLinks.length} / ${data.links.length} valid`
+          );
 
-            simulation.on("tick", () => {
-              link
-                .attr("x1", (d) => d.source.x)
-                .attr("y1", (d) => d.source.y)
-                .attr("x2", (d) => d.target.x)
-                .attr("y2", (d) => d.target.y);
+          if (validLinks.length === 0) {
+            console.warn("⚠️ No valid links after filtering");
+          }
 
-              node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
+          // Create SVG
+          const svg = d3
+            .select("#networkGraph")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .style("background", "black")
+            .style("border-radius", "10px");
+
+          console.log("✅ SVG created");
+
+          // Add gradient definitions
+          const defs = svg.append("defs");
+
+          defs
+            .append("linearGradient")
+            .attr("id", "linkGradient")
+            .attr("x1", "0%")
+            .attr("y1", "0%")
+            .attr("x2", "100%")
+            .attr("y2", "100%")
+            .append("stop")
+            .attr("offset", "0%")
+            .attr("stop-color", "#0f766e");
+
+          // Add shadow filter
+          const filter = defs
+            .append("filter")
+            .attr("id", "shadow")
+            .attr("x", "-50%")
+            .attr("y", "-50%")
+            .attr("width", "200%")
+            .attr("height", "200%");
+
+          filter
+            .append("feDropShadow")
+            .attr("dx", 0)
+            .attr("dy", 2)
+            .attr("stdDeviation", 3)
+            .attr("flood-opacity", 0.3);
+
+          console.log("✅ Filters and gradients added");
+
+          // Create zoom behavior
+          networkGraphZoom = d3.zoom().on("zoom", (event) => {
+            g.attr("transform", event.transform);
+          });
+
+          svg.call(networkGraphZoom);
+
+          // Create main group
+          const g = svg.append("g");
+
+          console.log("🔧 Creating force simulation...");
+
+          // Create force simulation with validated links
+          networkGraphSimulation = d3
+            .forceSimulation(data.nodes)
+            .force(
+              "link",
+              d3
+                .forceLink(validLinks)
+                .id((d) => d.id)
+                .distance((d) => 100 / (d.value || 1))
+                .strength(0.5)
+            )
+            .force("charge", d3.forceManyBody().strength(-500))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collision", d3.forceCollide().radius(25));
+
+          console.log("✅ Force simulation created");
+
+          // Create links
+          console.log(`📍 Creating ${validLinks.length} links...`);
+          const links = g
+            .append("g")
+            .selectAll("line")
+            .data(validLinks)
+            .enter()
+            .append("line")
+            .attr("class", "link")
+            .attr("stroke-width", (d) => Math.sqrt(d.value) * 1.5)
+            .on("mouseover", function (event, d) {
+              showLinkTooltip(event, d);
+              d3.select(this)
+                .attr("stroke-opacity", 1)
+                .attr("stroke-width", (link) => Math.sqrt(link.value) * 3);
+            })
+            .on("mouseout", function () {
+              hideLinkTooltip();
+              d3.select(this)
+                .attr("stroke-opacity", 0.6)
+                .attr("stroke-width", (link) => Math.sqrt(link.value) * 1.5);
             });
 
-            function dragstarted(event) {
-              if (!event.active) simulation.alphaTarget(0.3).restart();
-              event.subject.fx = event.subject.x;
-              event.subject.fy = event.subject.y;
+          console.log("✅ Links created");
+
+          // Create nodes
+          console.log(`🔴 Creating ${data.nodes.length} nodes...`);
+          const nodes = g
+            .append("g")
+            .selectAll("circle")
+            .data(data.nodes)
+            .enter()
+            .append("circle")
+            .attr("class", (d) => `node node-${d.type}`)
+            .attr("r", (d) => {
+              const connectionCount = validLinks.filter(
+                (l) =>
+                  (l.source.id || l.source) === d.id ||
+                  (l.target.id || l.target) === d.id
+              ).length;
+              return 8 + connectionCount * 2;
+            })
+            .attr("filter", "url(#shadow)")
+            .call(
+              d3
+                .drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended)
+            )
+            .on("mouseover", function (event, d) {
+              showNodeTooltip(event, d);
+              d3.select(this)
+                .transition()
+                .duration(200)
+                .attr("r", (node) => {
+                  const connectionCount = validLinks.filter(
+                    (l) =>
+                      (l.source.id || l.source) === node.id ||
+                      (l.target.id || l.target) === node.id
+                  ).length;
+                  return 12 + connectionCount * 2;
+                });
+              links.style("stroke-opacity", (link) => {
+                return (link.source.id || link.source) === d.id ||
+                  (link.target.id || link.target) === d.id
+                  ? 1
+                  : 0.2;
+              });
+            })
+            .on("mouseout", function (event, d) {
+              hideNodeTooltip();
+              d3.select(this)
+                .transition()
+                .duration(200)
+                .attr("r", (node) => {
+                  const connectionCount = validLinks.filter(
+                    (l) =>
+                      (l.source.id || l.source) === node.id ||
+                      (l.target.id || l.target) === node.id
+                  ).length;
+                  return 8 + connectionCount * 2;
+                });
+              links.style("stroke-opacity", 0.6);
+            });
+
+          console.log("✅ Nodes created");
+
+          // Add labels
+          console.log("📝 Adding labels...");
+          const labels = g
+            .append("g")
+            .selectAll("text")
+            .data(data.nodes)
+            .enter()
+            .append("text")
+            .attr("class", "node-label")
+            .attr("text-anchor", "middle")
+            .attr("dy", ".3em")
+            .text((d) =>
+              d.id.length > 12 ? d.id.substring(0, 10) + ".." : d.id
+            )
+            .style("font-size", (d) => {
+              const connectionCount = validLinks.filter(
+                (l) =>
+                  (l.source.id || l.source) === d.id ||
+                  (l.target.id || l.target) === d.id
+              ).length;
+              return 10 + connectionCount * 0.5 + "px";
+            });
+
+          console.log("✅ Labels added");
+
+          // Update positions on each tick
+          let tickCount = 0;
+          networkGraphSimulation.on("tick", () => {
+            tickCount++;
+            if (tickCount % 50 === 0) {
+              console.log(`⏱️ Simulation tick ${tickCount}`);
             }
 
-            function dragged(event) {
-              event.subject.fx = event.x;
-              event.subject.fy = event.y;
-            }
+            links
+              .attr("x1", (d) => d.source.x)
+              .attr("y1", (d) => d.source.y)
+              .attr("x2", (d) => d.target.x)
+              .attr("y2", (d) => d.target.y);
 
-            function dragended(event) {
-              if (!event.active) simulation.alphaTarget(0);
-              event.subject.fx = null;
-              event.subject.fy = null;
-            }
+            nodes.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
+            labels.attr("x", (d) => d.x).attr("y", (d) => d.y);
           });
+
+          console.log("🎉 Graph rendering complete!");
+
+          // Drag functions
+          function dragstarted(event, d) {
+            if (!event.active)
+              networkGraphSimulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+          }
+
+          function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+          }
+
+          function dragended(event, d) {
+            if (!event.active) networkGraphSimulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+          }
+        } catch (error) {
+          console.error("❌ Error rendering graph:", error);
+          document.getElementById("networkGraph").innerHTML =
+            '<p style="text-align: center; padding: 50px; color: red;">Error rendering graph. Check console.</p>';
+        }
+      }
+
+      function updateGraphStatistics(data) {
+        const serviceCount = data.nodes.filter(
+          (n) => n.type === "service"
+        ).length;
+        const ipCount = data.nodes.filter((n) => n.type === "ip").length;
+        const userCount = data.nodes.filter((n) => n.type === "user").length;
+
+        document.getElementById("graphServiceCount").textContent = serviceCount;
+        document.getElementById("graphIpCount").textContent = ipCount;
+        document.getElementById("graphUserCount").textContent = userCount;
+        document.getElementById("graphConnectionCount").textContent =
+          data.links.length;
+      }
+
+      function showNodeTooltip(event, node) {
+        const connectionCount = document.querySelectorAll(".node").length; // Approximate
+        const tooltip = document.createElement("div");
+        tooltip.id = "nodeTooltip";
+        tooltip.className = `tooltip ${node.type}-tooltip`;
+        tooltip.innerHTML = `
+          <div class="tooltip-header">${node.id}</div>
+          <div class="tooltip-content">
+            <strong>Type:</strong> ${node.type.toUpperCase()}<br>
+            <strong>Label:</strong> ${node.label || node.id}<br>
+            <strong>Node ID:</strong> ${node.id}
+          </div>
+        `;
+        tooltip.style.left = event.pageX + 10 + "px";
+        tooltip.style.top = event.pageY + 10 + "px";
+        document.body.appendChild(tooltip);
+      }
+
+      function hideNodeTooltip() {
+        const tooltip = document.getElementById("nodeTooltip");
+        if (tooltip) tooltip.remove();
+      }
+
+      function showLinkTooltip(event, link) {
+        const source = link.source.id || link.source;
+        const target = link.target.id || link.target;
+        const tooltip = document.createElement("div");
+        tooltip.id = "linkTooltip";
+        tooltip.className = "tooltip";
+        tooltip.innerHTML = `
+          <div class="tooltip-header">Connection</div>
+          <div class="tooltip-content">
+            <strong>From:</strong> ${source}<br>
+            <strong>To:</strong> ${target}<br>
+            <strong>Strength:</strong> ${link.value}
+          </div>
+        `;
+        tooltip.style.left = event.pageX + 10 + "px";
+        tooltip.style.top = event.pageY + 10 + "px";
+        document.body.appendChild(tooltip);
+      }
+
+      function hideLinkTooltip() {
+        const tooltip = document.getElementById("linkTooltip");
+        if (tooltip) tooltip.remove();
+      }
+
+      function resetGraphZoom() {
+        if (networkGraphZoom) {
+          d3.select("#networkGraph svg")
+            .transition()
+            .duration(750)
+            .call(
+              networkGraphZoom.transform,
+              d3.zoomIdentity.translate(0, 0).scale(1)
+            );
+        }
+      }
+
+      function pauseGraphSimulation() {
+        if (networkGraphSimulation) {
+          networkGraphPaused = true;
+          networkGraphSimulation.stop();
+        }
+      }
+
+      function resumeGraphSimulation() {
+        if (networkGraphSimulation) {
+          networkGraphPaused = false;
+          networkGraphSimulation.restart();
+        }
+      }
+
+      function zoomGraphIn() {
+        if (networkGraphZoom) {
+          d3.select("#networkGraph svg")
+            .transition()
+            .duration(300)
+            .call(networkGraphZoom.scaleBy, 1.3);
+        }
+      }
+
+      function zoomGraphOut() {
+        if (networkGraphZoom) {
+          d3.select("#networkGraph svg")
+            .transition()
+            .duration(300)
+            .call(networkGraphZoom.scaleBy, 0.7);
+        }
       }
 
       // Fetch anomaly distribution data
@@ -1304,6 +2286,58 @@
           type === "success" ? "1px solid #c3e6cb" : "1px solid #f5c6cb";
       }
 
+      // Logs Modal Functions
+      function openLogsModal() {
+        document.getElementById("logsModal").style.display = "block";
+        refreshLogs();
+      }
+
+      function closeLogsModal() {
+        document.getElementById("logsModal").style.display = "none";
+      }
+
+      function refreshLogs() {
+        fetch("/api/logs")
+          .then((response) => response.json())
+          .then((logs) => {
+            const logsContent = document.getElementById("logsContent");
+            const logsEmpty = document.getElementById("logsEmpty");
+            const logsTableBody = document.getElementById("logsTableBody");
+
+            if (logs.length === 0) {
+              logsContent.style.display = "none";
+              logsEmpty.style.display = "block";
+              return;
+            }
+
+            logsContent.style.display = "block";
+            logsEmpty.style.display = "none";
+
+            logsTableBody.innerHTML = logs
+              .map(
+                (log) => `
+                <tr>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${log.filename}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${log.size}</td>
+                  <td style="padding: 10px; border: 1px solid #ddd;">${log.created}</td>
+                  <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">
+                    <a href="${log.download_url}" target="_blank" style="margin-right: 10px; color: #0f766e; text-decoration: none;">
+                      <i class="fas fa-download"></i> Download
+                    </a>
+                    <a href="${log.view_url}" target="_blank" style="color: #0f766e; text-decoration: none;">
+                      <i class="fas fa-eye"></i> View
+                    </a>
+                  </td>
+                </tr>
+              `
+              )
+              .join("");
+          })
+          .catch((error) => {
+            console.error("Error fetching logs:", error);
+          });
+      }
+
       // System Info Modal Functions
       function openSystemInfoModal() {
         document.getElementById("systemInfoModal").style.display = "block";
@@ -1379,19 +2413,9 @@
         fetch("/api/system_status")
           .then((response) => response.json())
           .then((status) => {
-            const badge = document.getElementById("systemStatusBadge");
-            const text = document.getElementById("systemStatusText");
-            const btn = document.getElementById("systemToggleBtn");
-
-            if (status.is_running) {
-              badge.className = "status-badge online";
-              text.textContent = "Online";
-              btn.textContent = "⏹ Stop";
-            } else {
-              badge.className = "status-badge offline";
-              text.textContent = "Offline";
-              btn.textContent = "▶ Start";
-            }
+            // Status elements were removed from navbar
+            // This function now just logs the status
+            console.log("System status updated:", status);
           })
           .catch((error) => {
             console.error("Error updating system status:", error);
@@ -1413,6 +2437,7 @@
       window.onclick = function (event) {
         const uploadModal = document.getElementById("uploadModal");
         const processModal = document.getElementById("processModal");
+        const logsModal = document.getElementById("logsModal");
         const systemInfoModal = document.getElementById("systemInfoModal");
 
         if (event.target == uploadModal) {
@@ -1421,10 +2446,151 @@
         if (event.target == processModal) {
           processModal.style.display = "none";
         }
+        if (event.target == logsModal) {
+          logsModal.style.display = "none";
+        }
         if (event.target == systemInfoModal) {
           systemInfoModal.style.display = "none";
         }
       };
+
+      // Notification management
+      let notifications = [];
+      const MAX_NOTIFICATIONS = 50;
+
+      // Toggle notification panel
+      function toggleNotificationPanel() {
+        const panel = document.getElementById("notificationPanel");
+        panel.classList.toggle("active");
+      }
+
+      // Close notification panel when clicking outside
+      document.addEventListener("click", (event) => {
+        const notificationPanel = document.getElementById("notificationPanel");
+        const notificationIcon = document.querySelector(".notification-icon");
+
+        if (
+          !notificationPanel.contains(event.target) &&
+          !notificationIcon.contains(event.target)
+        ) {
+          notificationPanel.classList.remove("active");
+        }
+      });
+
+      // Add notification to the panel
+      function addNotification(anomaly) {
+        const notification = {
+          id: Date.now(),
+          timestamp: new Date(),
+          service: anomaly.service || "Unknown",
+          score: anomaly.anomaly_score || 0,
+          ip: anomaly.ip_address || "N/A",
+          message: anomaly.message || "Anomaly detected",
+        };
+
+        notifications.unshift(notification);
+
+        // Keep only max notifications
+        if (notifications.length > MAX_NOTIFICATIONS) {
+          notifications.pop();
+        }
+
+        updateNotificationBadge();
+        renderNotifications();
+      }
+
+      // Update notification badge count
+      function updateNotificationBadge() {
+        const badge = document.getElementById("notificationBadge");
+        const count = notifications.length;
+        badge.textContent = count > 99 ? "99+" : count;
+        badge.style.display = count > 0 ? "flex" : "none";
+      }
+
+      // Render notifications in the panel
+      function renderNotifications() {
+        const content = document.getElementById("notificationContent");
+
+        if (notifications.length === 0) {
+          content.innerHTML = `
+            <div class="notification-empty">
+              <i class="fas fa-inbox"></i>
+              <p>No alerts yet</p>
+            </div>
+          `;
+          return;
+        }
+
+        content.innerHTML = notifications
+          .map(
+            (notif) => `
+            <div class="notification-item">
+              <div class="notification-item-icon">
+                <i class="fas fa-exclamation-circle"></i>
+              </div>
+              <div class="notification-item-content">
+                <div class="notification-item-title">
+                  Critical Anomaly - ${notif.service}
+                </div>
+                <div class="notification-item-message">
+                  ${notif.message}
+                </div>
+                <div class="notification-item-details">
+                  <span><strong>Score:</strong> ${notif.score.toFixed(3)}</span>
+                  <span><strong>IP:</strong> ${notif.ip}</span>
+                </div>
+              </div>
+              <div class="notification-item-time">
+                ${formatNotificationTime(notif.timestamp)}
+              </div>
+              <button class="notification-item-close" onclick="removeNotification(${
+                notif.id
+              })">
+                ×
+              </button>
+            </div>
+          `
+          )
+          .join("");
+      }
+
+      // Format notification time
+      function formatNotificationTime(date) {
+        const now = new Date();
+        const diff = now - date;
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(diff / 86400000);
+
+        if (minutes < 1) return "Just now";
+        if (minutes < 60) return `${minutes}m ago`;
+        if (hours < 24) return `${hours}h ago`;
+        return `${days}d ago`;
+      }
+
+      // Remove individual notification
+      function removeNotification(id) {
+        notifications = notifications.filter((n) => n.id !== id);
+        updateNotificationBadge();
+        renderNotifications();
+      }
+
+      // Clear all notifications
+      function clearAllNotifications() {
+        notifications = [];
+        updateNotificationBadge();
+        renderNotifications();
+      }
+
+      // Update showAlert to also add to notifications
+      const originalShowAlert = showAlert;
+      showAlert = function (anomaly) {
+        originalShowAlert(anomaly);
+        addNotification(anomaly);
+      };
+
+      // Initialize notification badge
+      updateNotificationBadge();
     </script>
   </body>
 </html>
