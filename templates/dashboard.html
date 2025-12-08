@@ -666,6 +666,63 @@
         opacity: 0.7;
       }
 
+      /* Navigation Tabs */
+      .nav-tab {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 8px 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.9em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .nav-tab:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.5);
+      }
+
+      .nav-tab.active {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.6);
+        font-weight: 600;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Main Content Sections */
+      .main-section {
+        display: none;
+      }
+
+      .main-section.active {
+        display: block;
+      }
+
+      /* Main Tab Content */
+      .main-tab-content {
+        display: none;
+        animation: fadeIn 0.3s ease;
+      }
+
+      .main-tab-content.active {
+        display: block;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
       /* Modal Styles */
       .modal {
         display: none;
@@ -1096,13 +1153,21 @@
               <span class="notification-badge" id="notificationBadge">0</span>
             </div>
 
-            <!-- Upload File -->
+            <!-- Navigation Tabs -->
             <button
-              class="upload-btn"
-              onclick="openUploadModal()"
-              title="Upload Log File"
+              class="nav-tab active"
+              onclick="switchMainTab('dashboard')"
+              data-tab="dashboard"
             >
-              <i class="fas fa-upload"></i> Upload
+              <i class="fas fa-chart-line"></i> Dashboard
+            </button>
+
+            <button
+              class="nav-tab"
+              onclick="switchMainTab('dataset')"
+              data-tab="dataset"
+            >
+              <i class="fas fa-database"></i> Dataset Analysis
             </button>
 
             <!-- Logs -->
@@ -1156,150 +1221,426 @@
         </div>
       </div>
 
-      <!-- STATISTICS SECTION -->
-      <div class="stats-grid">
-        <div class="stat-card success">
-          <h3><i class="fas fa-check-circle"></i> Total Logs Processed</h3>
-          <div class="stat-value" id="totalLogs">0</div>
-        </div>
-        <div class="stat-card warning">
-          <h3>
-            <i class="fas fa-exclamation-triangle"></i> Anomalies Detected
-          </h3>
-          <div class="stat-value" id="totalAnomalies">0</div>
-        </div>
-        <div class="stat-card critical">
-          <h3><i class="fas fa-percentage"></i> Anomaly Rate</h3>
-          <div class="stat-value" id="anomalyRate">0%</div>
-        </div>
-        <div class="stat-card critical">
-          <h3><i class="fas fa-bell"></i> Critical Alerts</h3>
-          <div class="stat-value" id="criticalAlerts">0</div>
-        </div>
-      </div>
+      <!-- MAIN CONTENT SECTIONS -->
 
-      <!-- CHARTS SECTION -->
-      <div class="charts-container">
-        <div class="chart-card">
-          <h2><i class="fas fa-chart-line"></i> Anomaly Timeline</h2>
-          <div id="timelineChart"></div>
+      <!-- DASHBOARD TAB CONTENT -->
+      <div id="dashboardTab" class="main-tab-content active">
+        <!-- STATISTICS SECTION -->
+        <div class="stats-grid">
+          <div class="stat-card success">
+            <h3><i class="fas fa-check-circle"></i> Total Logs Processed</h3>
+            <div class="stat-value" id="totalLogs">0</div>
+          </div>
+          <div class="stat-card warning">
+            <h3>
+              <i class="fas fa-exclamation-triangle"></i> Anomalies Detected
+            </h3>
+            <div class="stat-value" id="totalAnomalies">0</div>
+          </div>
+          <div class="stat-card critical">
+            <h3><i class="fas fa-percentage"></i> Anomaly Rate</h3>
+            <div class="stat-value" id="anomalyRate">0%</div>
+          </div>
+          <div class="stat-card critical">
+            <h3><i class="fas fa-bell"></i> Critical Alerts</h3>
+            <div class="stat-value" id="criticalAlerts">0</div>
+          </div>
         </div>
-        <div class="chart-card">
-          <h2><i class="fas fa-chart-bar"></i> Anomaly Score Distribution</h2>
-          <div id="scoreChart"></div>
+
+        <!-- CHARTS SECTION -->
+        <div class="charts-container">
+          <div class="chart-card">
+            <h2><i class="fas fa-chart-line"></i> Anomaly Timeline</h2>
+            <div id="timelineChart"></div>
+          </div>
+          <div class="chart-card">
+            <h2><i class="fas fa-chart-bar"></i> Anomaly Score Distribution</h2>
+            <div id="scoreChart"></div>
+          </div>
+          <div class="chart-card">
+            <h2>
+              <i class="fas fa-pie-chart"></i> Anomaly Distribution by Service
+            </h2>
+            <div id="servicePieChart"></div>
+          </div>
         </div>
-        <div class="chart-card">
+
+        <div class="chart-card" style="margin-bottom: 30px">
           <h2>
-            <i class="fas fa-pie-chart"></i> Anomaly Distribution by Service
+            <i class="fas fa-project-diagram"></i> Network Graph - Service
+            Interactions
           </h2>
-          <div id="servicePieChart"></div>
+
+          <!-- Graph Statistics -->
+          <div class="graph-stats">
+            <div class="graph-stat-item services">
+              <div class="graph-stat-label">
+                <i class="fas fa-server"></i> Services
+              </div>
+              <div class="graph-stat-value" id="graphServiceCount">0</div>
+            </div>
+            <div class="graph-stat-item ips">
+              <div class="graph-stat-label">
+                <i class="fas fa-desktop"></i> IP Addresses
+              </div>
+              <div class="graph-stat-value" id="graphIpCount">0</div>
+            </div>
+            <div class="graph-stat-item users">
+              <div class="graph-stat-label">
+                <i class="fas fa-users"></i> Users
+              </div>
+              <div class="graph-stat-value" id="graphUserCount">0</div>
+            </div>
+            <div class="graph-stat-item connections">
+              <div class="graph-stat-label">
+                <i class="fas fa-link"></i> Connections
+              </div>
+              <div class="graph-stat-value" id="graphConnectionCount">0</div>
+            </div>
+          </div>
+
+          <!-- Graph Legend -->
+          <div class="graph-legend">
+            <div class="legend-item">
+              <div class="legend-color service"></div>
+              <span>Services</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color ip"></div>
+              <span>IP Addresses</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color user"></div>
+              <span>Users</span>
+            </div>
+          </div>
+
+          <!-- Graph Controls -->
+          <div class="graph-controls">
+            <button class="graph-btn" onclick="resetGraphZoom()">
+              <i class="fas fa-redo"></i> Reset View
+            </button>
+            <button class="graph-btn" onclick="pauseGraphSimulation()">
+              <i class="fas fa-pause"></i> Pause
+            </button>
+            <button class="graph-btn" onclick="resumeGraphSimulation()">
+              <i class="fas fa-play"></i> Resume
+            </button>
+            <button class="graph-btn" onclick="zoomGraphIn()">
+              <i class="fas fa-search-plus"></i> Zoom In
+            </button>
+            <button class="graph-btn" onclick="zoomGraphOut()">
+              <i class="fas fa-search-minus"></i> Zoom Out
+            </button>
+          </div>
+
+          <!-- Graph Info -->
+          <div class="graph-info">
+            <i class="fas fa-lightbulb"></i> <strong>Tip:</strong> Drag nodes to
+            reposition them. Hover over nodes and links for details. Thicker
+            lines indicate higher interaction frequency.
+          </div>
+
+          <!-- SVG Container -->
+          <div id="networkGraph" style="position: relative"></div>
+        </div>
+
+        <!-- ANOMALIES TABLE SECTION -->
+        <div id="anomalyTable">
+          <h2 style="color: #0f766e; margin-bottom: 15px">
+            <i class="fas fa-exclamation-circle"></i> Recent Anomalies
+          </h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Service</th>
+                <th>Level</th>
+                <th>Message</th>
+                <th>IP Address</th>
+                <th>Anomaly Score</th>
+              </tr>
+            </thead>
+            <tbody id="anomalyTableBody">
+              <tr>
+                <td colspan="6" style="text-align: center; color: #999">
+                  Waiting for anomalies...
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <div class="chart-card" style="margin-bottom: 30px">
-        <h2>
-          <i class="fas fa-project-diagram"></i> Network Graph - Service
-          Interactions
-        </h2>
+      <!-- DATASET ANALYSIS TAB CONTENT -->
+      <div id="datasetTab" class="main-tab-content">
+        <header style="margin-top: 0">
+          <h1 style="margin: 0">
+            <i class="fas fa-database"></i> Dataset Analysis & Anomaly Detection
+          </h1>
+          <p>
+            Upload and analyze log datasets with advanced machine learning
+            algorithms
+          </p>
+        </header>
 
-        <!-- Graph Statistics -->
-        <div class="graph-stats">
-          <div class="graph-stat-item services">
-            <div class="graph-stat-label">
-              <i class="fas fa-server"></i> Services
-            </div>
-            <div class="graph-stat-value" id="graphServiceCount">0</div>
-          </div>
-          <div class="graph-stat-item ips">
-            <div class="graph-stat-label">
-              <i class="fas fa-desktop"></i> IP Addresses
-            </div>
-            <div class="graph-stat-value" id="graphIpCount">0</div>
-          </div>
-          <div class="graph-stat-item users">
-            <div class="graph-stat-label">
-              <i class="fas fa-users"></i> Users
-            </div>
-            <div class="graph-stat-value" id="graphUserCount">0</div>
-          </div>
-          <div class="graph-stat-item connections">
-            <div class="graph-stat-label">
-              <i class="fas fa-link"></i> Connections
-            </div>
-            <div class="graph-stat-value" id="graphConnectionCount">0</div>
+        <!-- Analysis Navigation Tabs -->
+        <div
+          style="
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 15px 15px 0 0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+          "
+        >
+          <div style="display: flex; gap: 10px; padding: 15px 20px">
+            <button
+              class="analysis-tab active"
+              onclick="switchAnalysisTab('upload')"
+              data-tab="upload"
+            >
+              <i class="fas fa-upload"></i> Upload & Analyze
+            </button>
+            <button
+              class="analysis-tab"
+              onclick="switchAnalysisTab('results')"
+              data-tab="results"
+            >
+              <i class="fas fa-chart-bar"></i> Analysis Results
+            </button>
+            <button
+              class="analysis-tab"
+              onclick="switchAnalysisTab('viewer')"
+              data-tab="viewer"
+            >
+              <i class="fas fa-eye"></i> Log Viewer
+            </button>
+            <button
+              class="analysis-tab"
+              onclick="switchAnalysisTab('alerts')"
+              data-tab="alerts"
+            >
+              <i class="fas fa-bell"></i> Alerts
+            </button>
           </div>
         </div>
 
-        <!-- Graph Legend -->
-        <div class="graph-legend">
-          <div class="legend-item">
-            <div class="legend-color service"></div>
-            <span>Services</span>
+        <!-- Analysis Tab Content Container -->
+        <div
+          style="
+            background: white;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+          "
+        >
+          <!-- Upload & Analyze Tab -->
+          <div id="uploadTab" class="analysis-tab-content active">
+            <div class="form-group">
+              <label for="datasetFile">
+                <i class="fas fa-file-upload"></i> Select Dataset File (.log or
+                .txt)
+              </label>
+              <input
+                type="file"
+                id="datasetFile"
+                accept=".log,.txt"
+                style="margin-bottom: 10px"
+              />
+              <div style="font-size: 0.9em; color: #666; margin-bottom: 15px">
+                <i class="fas fa-info-circle"></i> Supports log files up to
+                16MB. Analysis uses both pattern matching and Spark MLlib for
+                comprehensive anomaly detection.
+              </div>
+            </div>
+
+            <div
+              style="
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+                margin-bottom: 20px;
+              "
+            >
+              <div>
+                <h4 style="color: #0f766e; margin-bottom: 10px">
+                  <i class="fas fa-cogs"></i> Analysis Options
+                </h4>
+                <div class="form-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      id="useSparkMLlib"
+                      checked
+                      style="margin-right: 8px"
+                    />
+                    Use Spark MLlib Analysis (Recommended)
+                  </label>
+                  <div
+                    style="font-size: 0.85em; color: #666; margin-left: 20px"
+                  >
+                    Advanced machine learning with clustering and feature
+                    engineering
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      id="generateAlerts"
+                      checked
+                      style="margin-right: 8px"
+                    />
+                    Generate Severity-based Alerts
+                  </label>
+                </div>
+                <div class="form-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      id="analyzeNetworkGraph"
+                      checked
+                      style="margin-right: 8px"
+                    />
+                    Generate Network Analysis
+                  </label>
+                </div>
+              </div>
+              <div>
+                <h4 style="color: #0f766e; margin-bottom: 10px">
+                  <i class="fas fa-sliders-h"></i> Detection Sensitivity
+                </h4>
+                <div class="form-group">
+                  <label for="anomalyThreshold"
+                    >Anomaly Detection Threshold</label
+                  >
+                  <input
+                    type="range"
+                    id="anomalyThreshold"
+                    min="0.1"
+                    max="0.9"
+                    step="0.1"
+                    value="0.4"
+                    style="width: 100%; margin-bottom: 5px"
+                  />
+                  <div
+                    style="
+                      display: flex;
+                      justify-content: space-between;
+                      font-size: 0.85em;
+                      color: #666;
+                    "
+                  >
+                    <span>More Sensitive</span>
+                    <span id="thresholdValue">0.4</span>
+                    <span>Less Sensitive</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 20px">
+              <button
+                class="btn btn-primary"
+                id="analyzeDatasetBtn"
+                onclick="startDatasetAnalysis()"
+              >
+                <i class="fas fa-play"></i> Start Analysis
+              </button>
+              <button class="btn btn-secondary" onclick="loadRecentAnalyses()">
+                <i class="fas fa-history"></i> View Recent Analyses
+              </button>
+            </div>
+
+            <!-- Analysis Progress -->
+            <div
+              id="analysisProgress"
+              style="display: none; margin-bottom: 20px"
+            >
+              <div
+                style="
+                  background: #f0f9ff;
+                  padding: 15px;
+                  border-radius: 8px;
+                  border-left: 4px solid #0f766e;
+                "
+              >
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    margin-bottom: 10px;
+                  "
+                >
+                  <div class="analysis-spinner"></div>
+                  <strong id="analysisStatus">Initializing analysis...</strong>
+                </div>
+                <div class="progress-bar">
+                  <div class="progress-fill" id="analysisProgressBar"></div>
+                </div>
+                <div
+                  style="font-size: 0.85em; color: #666; margin-top: 5px"
+                  id="analysisDetails"
+                >
+                  Preparing dataset for analysis...
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Analyses List -->
+            <div id="recentAnalyses" style="margin-top: 20px">
+              <h4 style="color: #0f766e; margin-bottom: 15px">
+                <i class="fas fa-history"></i> Recent Analyses
+              </h4>
+              <div
+                id="recentAnalysesList"
+                style="max-height: 400px; overflow-y: auto"
+              ></div>
+            </div>
           </div>
-          <div class="legend-item">
-            <div class="legend-color ip"></div>
-            <span>IP Addresses</span>
+
+          <!-- Analysis Results Tab -->
+          <div id="resultsTab" class="analysis-tab-content">
+            <div id="analysisResultsContent">
+              <div style="text-align: center; padding: 40px; color: #999">
+                <i
+                  class="fas fa-chart-line"
+                  style="font-size: 2.5em; margin-bottom: 15px; opacity: 0.5"
+                ></i>
+                <p>Select an analysis from the Upload tab to view results</p>
+              </div>
+            </div>
           </div>
-          <div class="legend-item">
-            <div class="legend-color user"></div>
-            <span>Users</span>
+
+          <!-- Log Viewer Tab -->
+          <div id="viewerTab" class="analysis-tab-content">
+            <div id="logViewerContent">
+              <div style="text-align: center; padding: 40px; color: #999">
+                <i
+                  class="fas fa-eye"
+                  style="font-size: 2.5em; margin-bottom: 15px; opacity: 0.5"
+                ></i>
+                <p>Select an analysis to view logs with anomaly highlighting</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Alerts Tab -->
+          <div id="alertsTab" class="analysis-tab-content">
+            <div id="alertsContent">
+              <div style="text-align: center; padding: 40px; color: #999">
+                <i
+                  class="fas fa-bell"
+                  style="font-size: 2.5em; margin-bottom: 15px; opacity: 0.5"
+                ></i>
+                <p>Select an analysis to view generated alerts</p>
+              </div>
+            </div>
           </div>
         </div>
-
-        <!-- Graph Controls -->
-        <div class="graph-controls">
-          <button class="graph-btn" onclick="resetGraphZoom()">
-            <i class="fas fa-redo"></i> Reset View
-          </button>
-          <button class="graph-btn" onclick="pauseGraphSimulation()">
-            <i class="fas fa-pause"></i> Pause
-          </button>
-          <button class="graph-btn" onclick="resumeGraphSimulation()">
-            <i class="fas fa-play"></i> Resume
-          </button>
-          <button class="graph-btn" onclick="zoomGraphIn()">
-            <i class="fas fa-search-plus"></i> Zoom In
-          </button>
-          <button class="graph-btn" onclick="zoomGraphOut()">
-            <i class="fas fa-search-minus"></i> Zoom Out
-          </button>
-        </div>
-
-        <!-- Graph Info -->
-        <div class="graph-info">
-          <i class="fas fa-lightbulb"></i> <strong>Tip:</strong> Drag nodes to
-          reposition them. Hover over nodes and links for details. Thicker lines
-          indicate higher interaction frequency.
-        </div>
-
-        <!-- SVG Container -->
-        <div id="networkGraph" style="position: relative"></div>
-      </div>
-
-      <!-- ANOMALIES TABLE SECTION -->
-      <div id="anomalyTable">
-        <h2 style="color: #0f766e; margin-bottom: 15px">
-          <i class="fas fa-exclamation-circle"></i> Recent Anomalies
-        </h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Timestamp</th>
-              <th>Service</th>
-              <th>Level</th>
-              <th>Message</th>
-              <th>IP Address</th>
-              <th>Anomaly Score</th>
-            </tr>
-          </thead>
-          <tbody id="anomalyTableBody">
-            <tr>
-              <td colspan="6" style="text-align: center; color: #999">
-                Waiting for anomalies...
-              </td>
-            </tr>
-          </tbody>
-        </table>
       </div>
 
       <!-- PAGE FOOTER -->
@@ -1551,6 +1892,332 @@
         </div>
       </div>
     </div>
+
+    <style>
+      /* Dataset Analysis Modal Styles */
+      .analysis-tab {
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid transparent;
+        padding: 12px 20px;
+        cursor: pointer;
+        font-size: 0.95em;
+        color: #6b7280;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .analysis-tab:hover {
+        color: #0f766e;
+        background: #f0fdfa;
+      }
+
+      .analysis-tab.active {
+        color: #0f766e;
+        border-bottom-color: #0f766e;
+        font-weight: 600;
+        background: #f0fdfa;
+      }
+
+      .analysis-tab-content {
+        display: none;
+        padding: 20px 0;
+      }
+
+      .analysis-tab-content.active {
+        display: block;
+      }
+
+      .analysis-spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #e5e7eb;
+        border-top: 2px solid #0f766e;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .analysis-result-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .analysis-result-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+      }
+
+      .analysis-result-card.selected {
+        border-color: #0f766e;
+        box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.2);
+      }
+
+      .analysis-result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .analysis-result-title {
+        font-weight: 600;
+        color: #1f2937;
+        font-size: 1.1em;
+      }
+
+      .analysis-result-status {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8em;
+        font-weight: 600;
+      }
+
+      .analysis-result-status.completed {
+        background: #d1fae5;
+        color: #065f46;
+      }
+
+      .analysis-result-status.processing {
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      .analysis-result-status.failed {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+
+      .analysis-result-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .analysis-result-stat {
+        text-align: center;
+        padding: 8px;
+        background: #f9fafb;
+        border-radius: 6px;
+      }
+
+      .analysis-result-stat-value {
+        font-size: 1.2em;
+        font-weight: bold;
+        color: #0f766e;
+      }
+
+      .analysis-result-stat-label {
+        font-size: 0.8em;
+        color: #6b7280;
+        text-transform: uppercase;
+      }
+
+      .analysis-result-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85em;
+        color: #9ca3af;
+      }
+
+      .log-entry {
+        font-family: "Courier New", monospace;
+        font-size: 0.85em;
+        padding: 8px 12px;
+        margin-bottom: 2px;
+        border-left: 3px solid transparent;
+        background: #f8f9fa;
+        border-radius: 0 4px 4px 0;
+      }
+
+      .log-entry.anomaly-critical {
+        background: #fee2e2;
+        border-left-color: #dc2626;
+        color: #991b1b;
+      }
+
+      .log-entry.anomaly-high {
+        background: #fef3c7;
+        border-left-color: #f59e0b;
+        color: #92400e;
+      }
+
+      .log-entry.anomaly-medium {
+        background: #dbeafe;
+        border-left-color: #3b82f6;
+        color: #1e40af;
+      }
+
+      .log-entry.anomaly-low {
+        background: #d1fae5;
+        border-left-color: #10b981;
+        color: #065f46;
+      }
+
+      .alert-item {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-left: 4px solid #dc2626;
+      }
+
+      .alert-item.critical {
+        border-left-color: #dc2626;
+        background: #fef2f2;
+      }
+
+      .alert-item.high {
+        border-left-color: #f59e0b;
+        background: #fffbeb;
+      }
+
+      .alert-item.medium {
+        border-left-color: #3b82f6;
+        background: #eff6ff;
+      }
+
+      .alert-item.low {
+        border-left-color: #10b981;
+        background: #f0fdf4;
+      }
+
+      .alert-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      .alert-title {
+        font-weight: 600;
+        color: #1f2937;
+      }
+
+      .alert-severity {
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75em;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      .alert-severity.critical {
+        background: #dc2626;
+        color: white;
+      }
+
+      .alert-severity.high {
+        background: #f59e0b;
+        color: white;
+      }
+
+      .alert-severity.medium {
+        background: #3b82f6;
+        color: white;
+      }
+
+      .alert-severity.low {
+        background: #10b981;
+        color: white;
+      }
+
+      .chart-container {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .chart-title {
+        color: #0f766e;
+        font-size: 1.1em;
+        font-weight: 600;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .filter-controls {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .filter-controls select,
+      .filter-controls input {
+        padding: 6px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 0.9em;
+      }
+
+      .pagination-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;
+        padding: 15px 0;
+        border-top: 1px solid #e5e7eb;
+      }
+
+      .pagination-info {
+        font-size: 0.9em;
+        color: #6b7280;
+      }
+
+      .pagination-buttons {
+        display: flex;
+        gap: 8px;
+      }
+
+      .pagination-btn {
+        background: #f3f4f6;
+        border: 1px solid #d1d5db;
+        color: #374151;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9em;
+        transition: all 0.2s;
+      }
+
+      .pagination-btn:hover:not(:disabled) {
+        background: #e5e7eb;
+      }
+
+      .pagination-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .pagination-btn.active {
+        background: #0f766e;
+        color: white;
+        border-color: #0f766e;
+      }
+    </style>
     <script>
       // Initialize Socket.IO connection
       const socket = io();
@@ -1715,8 +2382,12 @@
             console.log(
               `✅ Rendering graph with ${data.nodes.length} nodes and ${data.links.length} links`
             );
-            renderEnhancedNetworkGraph(data);
+
+            // Update statistics
             updateGraphStatistics(data);
+
+            // Render the graph
+            renderEnhancedNetworkGraph(data);
           })
           .catch((error) => {
             console.error("❌ Error loading graph:", error);
@@ -2591,6 +3262,937 @@
 
       // Initialize notification badge
       updateNotificationBadge();
+
+      // ==========================================
+      // MAIN TAB SWITCHING FUNCTIONS
+      // ==========================================
+
+      function switchMainTab(tabName) {
+        // Remove active class from all nav tabs
+        document.querySelectorAll(".nav-tab").forEach((tab) => {
+          tab.classList.remove("active");
+        });
+
+        // Remove active class from all main content sections
+        document.querySelectorAll(".main-tab-content").forEach((content) => {
+          content.classList.remove("active");
+        });
+
+        // Add active class to selected nav tab
+        document
+          .querySelector(`[data-tab="${tabName}"]`)
+          .classList.add("active");
+
+        // Add active class to selected content section
+        document.getElementById(`${tabName}Tab`).classList.add("active");
+
+        // Initialize content based on tab
+        if (tabName === "dataset") {
+          // Initialize dataset analysis when switching to that tab
+          loadRecentAnalyses();
+
+          // Update threshold display
+          const thresholdSlider = document.getElementById("anomalyThreshold");
+          const thresholdValue = document.getElementById("thresholdValue");
+          if (thresholdSlider && thresholdValue) {
+            thresholdSlider.addEventListener("input", function () {
+              thresholdValue.textContent = this.value;
+            });
+          }
+        }
+      }
+
+      // ==========================================
+      // DATASET ANALYSIS FUNCTIONS
+      // ==========================================
+
+      // Global variables for dataset analysis
+      let currentAnalysisData = null;
+      let selectedAnalysisId = null;
+      let analysisResults = {};
+
+      // Dataset Analysis Modal Functions
+      function openDatasetAnalysisModal() {
+        document.getElementById("datasetAnalysisModal").style.display = "block";
+        loadRecentAnalyses();
+
+        // Update threshold display
+        const thresholdSlider = document.getElementById("anomalyThreshold");
+        const thresholdValue = document.getElementById("thresholdValue");
+        thresholdSlider.addEventListener("input", function () {
+          thresholdValue.textContent = this.value;
+        });
+      }
+
+      function closeDatasetAnalysisModal() {
+        document.getElementById("datasetAnalysisModal").style.display = "none";
+        hideAnalysisProgress();
+      }
+
+      function switchAnalysisTab(tabName) {
+        // Remove active class from all tabs and contents
+        document.querySelectorAll(".analysis-tab").forEach((tab) => {
+          tab.classList.remove("active");
+        });
+        document
+          .querySelectorAll(".analysis-tab-content")
+          .forEach((content) => {
+            content.classList.remove("active");
+          });
+
+        // Add active class to selected tab and content
+        document
+          .querySelector(`[data-tab="${tabName}"]`)
+          .classList.add("active");
+        document.getElementById(`${tabName}Tab`).classList.add("active");
+
+        // Load content based on tab
+        switch (tabName) {
+          case "upload":
+            loadRecentAnalyses();
+            break;
+          case "results":
+            if (selectedAnalysisId) {
+              loadAnalysisResults(selectedAnalysisId);
+            }
+            break;
+          case "viewer":
+            if (selectedAnalysisId) {
+              loadLogViewer(selectedAnalysisId);
+            }
+            break;
+          case "alerts":
+            if (selectedAnalysisId) {
+              loadAlertsViewer(selectedAnalysisId);
+            }
+            break;
+        }
+      }
+
+      function startDatasetAnalysis() {
+        const fileInput = document.getElementById("datasetFile");
+        const file = fileInput.files[0];
+
+        if (!file) {
+          alert("Please select a dataset file first");
+          return;
+        }
+
+        if (file.size > 16 * 1024 * 1024) {
+          alert("File size exceeds 16MB limit");
+          return;
+        }
+
+        // Show analysis progress
+        showAnalysisProgress();
+
+        // Upload file first
+        const formData = new FormData();
+        formData.append("file", file);
+
+        fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.status === "success") {
+              updateAnalysisProgress(
+                25,
+                "File uploaded successfully",
+                "Starting analysis..."
+              );
+              // Start analysis
+              return startAnalysisProcess(data.filepath);
+            } else {
+              throw new Error(data.error || "Upload failed");
+            }
+          })
+          .catch((error) => {
+            hideAnalysisProgress();
+            alert("Upload failed: " + error.message);
+          });
+      }
+
+      function startAnalysisProcess(filepath) {
+        const useSparkMLlib = document.getElementById("useSparkMLlib").checked;
+        const generateAlerts =
+          document.getElementById("generateAlerts").checked;
+        const analyzeNetworkGraph = document.getElementById(
+          "analyzeNetworkGraph"
+        ).checked;
+        const threshold = parseFloat(
+          document.getElementById("anomalyThreshold").value
+        );
+
+        const analysisData = {
+          filepath: filepath,
+          options: {
+            use_spark_mllib: useSparkMLlib,
+            generate_alerts: generateAlerts,
+            analyze_network_graph: analyzeNetworkGraph,
+            anomaly_threshold: threshold,
+          },
+        };
+
+        updateAnalysisProgress(
+          35,
+          "Initializing analysis engine",
+          "Loading analysis modules..."
+        );
+
+        // Start the analysis
+        fetch("/api/uploaded/analyze", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(analysisData),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.status === "success") {
+              currentAnalysisData = data;
+              updateAnalysisProgress(
+                50,
+                "Analysis started",
+                `Processing dataset: ${data.filename}`
+              );
+              // Monitor analysis progress
+              monitorAnalysisProgress(data.file_id);
+            } else {
+              throw new Error(data.error || "Analysis failed to start");
+            }
+          })
+          .catch((error) => {
+            hideAnalysisProgress();
+            alert("Analysis failed: " + error.message);
+          });
+      }
+
+      function monitorAnalysisProgress(fileId) {
+        // Listen for WebSocket events
+        socket.on("dataset_analysis_completed", (data) => {
+          if (data.file_id === fileId) {
+            updateAnalysisProgress(
+              100,
+              "Analysis completed!",
+              `Found ${data.anomalies_count || 0} anomalies`
+            );
+
+            setTimeout(() => {
+              hideAnalysisProgress();
+              selectedAnalysisId = fileId;
+              loadRecentAnalyses();
+
+              // Auto-switch to results tab
+              switchAnalysisTab("results");
+
+              alert(
+                `Analysis completed successfully!\n\nResults:\n- Total anomalies: ${
+                  data.anomalies_count || 0
+                }\n- Analysis method: ${data.method || "Pattern matching"}`
+              );
+            }, 2000);
+          }
+        });
+
+        socket.on("dataset_analysis_failed", (data) => {
+          if (data.file_id === fileId) {
+            hideAnalysisProgress();
+            alert("Analysis failed: " + (data.error || "Unknown error"));
+          }
+        });
+      }
+
+      function showAnalysisProgress() {
+        document.getElementById("analysisProgress").style.display = "block";
+        document.getElementById("analyzeDatasetBtn").disabled = true;
+        document.getElementById("analyzeDatasetBtn").innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+      }
+
+      function hideAnalysisProgress() {
+        document.getElementById("analysisProgress").style.display = "none";
+        document.getElementById("analyzeDatasetBtn").disabled = false;
+        document.getElementById("analyzeDatasetBtn").innerHTML =
+          '<i class="fas fa-play"></i> Start Analysis';
+      }
+
+      function updateAnalysisProgress(percent, status, details) {
+        document.getElementById("analysisProgressBar").style.width =
+          percent + "%";
+        document.getElementById("analysisStatus").textContent = status;
+        document.getElementById("analysisDetails").textContent = details;
+      }
+
+      function loadRecentAnalyses() {
+        fetch("/api/uploaded/list")
+          .then((response) => response.json())
+          .then((data) => {
+            renderRecentAnalyses(data.analyses || []);
+          })
+          .catch((error) => {
+            console.error("Error loading recent analyses:", error);
+            document.getElementById("recentAnalysesList").innerHTML =
+              '<p style="text-align: center; color: #999; padding: 20px;">Error loading analyses</p>';
+          });
+      }
+
+      function renderRecentAnalyses(analyses) {
+        const container = document.getElementById("recentAnalysesList");
+
+        if (analyses.length === 0) {
+          container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #999;">
+              <i class="fas fa-folder-open" style="font-size: 2em; margin-bottom: 10px; opacity: 0.5;"></i>
+              <p>No analyses yet. Upload a dataset to get started.</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = analyses
+          .map(
+            (analysis) => `
+          <div class="analysis-result-card ${
+            selectedAnalysisId === analysis.file_id ? "selected" : ""
+          }" 
+               onclick="selectAnalysis('${analysis.file_id}')">
+            <div class="analysis-result-header">
+              <div class="analysis-result-title">
+                <i class="fas fa-file-alt"></i> ${analysis.filename}
+              </div>
+              <div class="analysis-result-status ${analysis.status}">
+                ${analysis.status.toUpperCase()}
+              </div>
+            </div>
+            <div class="analysis-result-stats">
+              <div class="analysis-result-stat">
+                <div class="analysis-result-stat-value">${analysis.total_logs.toLocaleString()}</div>
+                <div class="analysis-result-stat-label">Total Logs</div>
+              </div>
+              <div class="analysis-result-stat">
+                <div class="analysis-result-stat-value">${analysis.anomalies_found.toLocaleString()}</div>
+                <div class="analysis-result-stat-label">Anomalies</div>
+              </div>
+              <div class="analysis-result-stat">
+                <div class="analysis-result-stat-value">${
+                  analysis.critical_alerts
+                }</div>
+                <div class="analysis-result-stat-label">Critical</div>
+              </div>
+              <div class="analysis-result-stat">
+                <div class="analysis-result-stat-value">${
+                  analysis.processing_time
+                }s</div>
+                <div class="analysis-result-stat-label">Time</div>
+              </div>
+            </div>
+            <div class="analysis-result-meta">
+              <span><i class="fas fa-clock"></i> ${new Date(
+                analysis.analysis_completed
+              ).toLocaleString()}</span>
+              <span><i class="fas fa-trash" onclick="deleteAnalysis('${
+                analysis.file_id
+              }', event)"></i></span>
+            </div>
+          </div>
+        `
+          )
+          .join("");
+      }
+
+      function selectAnalysis(fileId) {
+        selectedAnalysisId = fileId;
+
+        // Update UI
+        document.querySelectorAll(".analysis-result-card").forEach((card) => {
+          card.classList.remove("selected");
+        });
+        event.currentTarget.classList.add("selected");
+
+        // Load data for selected analysis
+        loadAnalysisData(fileId);
+      }
+
+      function loadAnalysisData(fileId) {
+        fetch(`/api/uploaded/results/${fileId}`)
+          .then((response) => response.json())
+          .then((data) => {
+            analysisResults[fileId] = data;
+            console.log("Analysis data loaded for:", fileId, data);
+          })
+          .catch((error) => {
+            console.error("Error loading analysis data:", error);
+          });
+      }
+
+      function loadAnalysisResults(fileId) {
+        const container = document.getElementById("analysisResultsContent");
+
+        if (!fileId) {
+          container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #999;">
+              <i class="fas fa-chart-line" style="font-size: 2.5em; margin-bottom: 15px; opacity: 0.5;"></i>
+              <p>Select an analysis from the Upload tab to view results</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML =
+          '<div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading results...</div>';
+
+        // Load statistics and create visualizations
+        Promise.all([
+          fetch(`/api/uploaded/statistics/${fileId}`).then((r) => r.json()),
+          fetch(`/api/uploaded/timeline/${fileId}`).then((r) => r.json()),
+          fetch(`/api/uploaded/distribution/${fileId}`).then((r) => r.json()),
+        ])
+          .then(([stats, timeline, distribution]) => {
+            renderAnalysisResults(fileId, stats, timeline, distribution);
+          })
+          .catch((error) => {
+            container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #dc2626;">
+              <i class="fas fa-exclamation-circle" style="font-size: 2em; margin-bottom: 10px;"></i>
+              <p>Error loading results: ${error.message}</p>
+            </div>
+          `;
+          });
+      }
+
+      function renderAnalysisResults(fileId, stats, timeline, distribution) {
+        const container = document.getElementById("analysisResultsContent");
+
+        container.innerHTML = `
+          <!-- Summary Statistics -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px;">
+            <div class="analysis-result-stat" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <div style="font-size: 2em; font-weight: bold; color: #0f766e;">${stats.statistics.total_logs.toLocaleString()}</div>
+              <div style="color: #666; text-transform: uppercase; font-size: 0.9em;">Total Logs</div>
+            </div>
+            <div class="analysis-result-stat" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <div style="font-size: 2em; font-weight: bold; color: #f59e0b;">${stats.statistics.anomalies_found.toLocaleString()}</div>
+              <div style="color: #666; text-transform: uppercase; font-size: 0.9em;">Anomalies Found</div>
+            </div>
+            <div class="analysis-result-stat" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <div style="font-size: 2em; font-weight: bold; color: #dc2626;">${
+                stats.statistics.critical_alerts
+              }</div>
+              <div style="color: #666; text-transform: uppercase; font-size: 0.9em;">Critical Alerts</div>
+            </div>
+            <div class="analysis-result-stat" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <div style="font-size: 2em; font-weight: bold; color: #10b981;">${
+                stats.summary.anomaly_rate
+              }%</div>
+              <div style="color: #666; text-transform: uppercase; font-size: 0.9em;">Anomaly Rate</div>
+            </div>
+          </div>
+
+          <!-- Timeline Chart -->
+          <div class="chart-container">
+            <div class="chart-title">
+              <i class="fas fa-chart-line"></i> Anomaly Timeline
+            </div>
+            <div id="datasetTimelineChart"></div>
+          </div>
+
+          <!-- Service Distribution Chart -->
+          <div class="chart-container">
+            <div class="chart-title">
+              <i class="fas fa-pie-chart"></i> Anomaly Distribution by Service
+            </div>
+            <div id="datasetServiceChart"></div>
+          </div>
+
+          <!-- Severity Distribution Chart -->
+          <div class="chart-container">
+            <div class="chart-title">
+              <i class="fas fa-chart-bar"></i> Severity Distribution
+            </div>
+            <div id="datasetSeverityChart"></div>
+          </div>
+
+          <!-- Additional Statistics -->
+          <div class="chart-container">
+            <div class="chart-title">
+              <i class="fas fa-info-circle"></i> Analysis Details
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+              <div>
+                <h5 style="color: #0f766e; margin-bottom: 10px;">Services Analyzed</h5>
+                <div style="max-height: 150px; overflow-y: auto;">
+                  ${stats.statistics.services_analyzed
+                    .map(
+                      (service) =>
+                        `<span style="display: inline-block; background: #f0fdfa; color: #0f766e; padding: 4px 8px; border-radius: 4px; margin: 2px; font-size: 0.9em;">${service}</span>`
+                    )
+                    .join("")}
+                </div>
+              </div>
+              <div>
+                <h5 style="color: #0f766e; margin-bottom: 10px;">Suspicious IPs</h5>
+                <div style="max-height: 150px; overflow-y: auto;">
+                  ${stats.statistics.suspicious_ips_found
+                    .slice(0, 10)
+                    .map(
+                      (ip) =>
+                        `<span style="display: inline-block; background: #fee2e2; color: #dc2626; padding: 4px 8px; border-radius: 4px; margin: 2px; font-size: 0.9em;">${ip}</span>`
+                    )
+                    .join("")}
+                </div>
+              </div>
+              <div>
+                <h5 style="color: #0f766e; margin-bottom: 10px;">Processing Info</h5>
+                <p style="margin: 5px 0; font-size: 0.9em;"><strong>Processing Time:</strong> ${
+                  stats.statistics.processing_time
+                }s</p>
+                <p style="margin: 5px 0; font-size: 0.9em;"><strong>Time Range:</strong> ${
+                  stats.statistics.time_range.start
+                    ? new Date(
+                        stats.statistics.time_range.start
+                      ).toLocaleString()
+                    : "N/A"
+                } - ${
+          stats.statistics.time_range.end
+            ? new Date(stats.statistics.time_range.end).toLocaleString()
+            : "N/A"
+        }</p>
+                <p style="margin: 5px 0; font-size: 0.9em;"><strong>Analysis Method:</strong> ${
+                  stats.statistics.analysis_method || "Pattern Matching"
+                }</p>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Create charts
+        createDatasetTimelineChart(timeline);
+        createDatasetServiceChart(distribution);
+        createDatasetSeverityChart(distribution);
+      }
+
+      function createDatasetTimelineChart(timelineData) {
+        if (!timelineData.timestamps || timelineData.timestamps.length === 0) {
+          document.getElementById("datasetTimelineChart").innerHTML =
+            '<p style="text-align: center; color: #999; padding: 20px;">No timeline data available</p>';
+          return;
+        }
+
+        const traces = [
+          {
+            x: timelineData.timestamps,
+            y: Object.values(timelineData.timeline).map((d) => d.critical),
+            name: "Critical",
+            type: "scatter",
+            mode: "lines+markers",
+            line: { color: "#dc2626" },
+            stackgroup: "one",
+          },
+          {
+            x: timelineData.timestamps,
+            y: Object.values(timelineData.timeline).map((d) => d.high),
+            name: "High",
+            type: "scatter",
+            mode: "lines+markers",
+            line: { color: "#f59e0b" },
+            stackgroup: "one",
+          },
+          {
+            x: timelineData.timestamps,
+            y: Object.values(timelineData.timeline).map((d) => d.medium),
+            name: "Medium",
+            type: "scatter",
+            mode: "lines+markers",
+            line: { color: "#3b82f6" },
+            stackgroup: "one",
+          },
+          {
+            x: timelineData.timestamps,
+            y: Object.values(timelineData.timeline).map((d) => d.low),
+            name: "Low",
+            type: "scatter",
+            mode: "lines+markers",
+            line: { color: "#10b981" },
+            stackgroup: "one",
+          },
+        ];
+
+        const layout = {
+          title: "",
+          xaxis: { title: "Time" },
+          yaxis: { title: "Anomaly Count" },
+          margin: { t: 20, r: 20, b: 60, l: 60 },
+          height: 400,
+        };
+
+        Plotly.newPlot("datasetTimelineChart", traces, layout, {
+          responsive: true,
+        });
+      }
+
+      function createDatasetServiceChart(distributionData) {
+        if (
+          !distributionData.service_distribution ||
+          Object.keys(distributionData.service_distribution).length === 0
+        ) {
+          document.getElementById("datasetServiceChart").innerHTML =
+            '<p style="text-align: center; color: #999; padding: 20px;">No service data available</p>';
+          return;
+        }
+
+        const trace = {
+          labels: Object.keys(distributionData.service_distribution),
+          values: Object.values(distributionData.service_distribution),
+          type: "pie",
+          hole: 0.4,
+          textinfo: "label+percent",
+          textposition: "outside",
+        };
+
+        const layout = {
+          title: "",
+          height: 400,
+          margin: { t: 20, b: 20, l: 20, r: 20 },
+        };
+
+        Plotly.newPlot("datasetServiceChart", [trace], layout, {
+          responsive: true,
+        });
+      }
+
+      function createDatasetSeverityChart(distributionData) {
+        const severityData = distributionData.severity_distribution;
+
+        const trace = {
+          x: ["Critical", "High", "Medium", "Low"],
+          y: [
+            severityData.critical,
+            severityData.high,
+            severityData.medium,
+            severityData.low,
+          ],
+          type: "bar",
+          marker: {
+            color: ["#dc2626", "#f59e0b", "#3b82f6", "#10b981"],
+          },
+        };
+
+        const layout = {
+          title: "",
+          xaxis: { title: "Severity Level" },
+          yaxis: { title: "Count" },
+          margin: { t: 20, r: 20, b: 60, l: 60 },
+          height: 400,
+        };
+
+        Plotly.newPlot("datasetSeverityChart", [trace], layout, {
+          responsive: true,
+        });
+      }
+
+      function loadLogViewer(fileId) {
+        const container = document.getElementById("logViewerContent");
+
+        if (!fileId) {
+          container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #999;">
+              <i class="fas fa-eye" style="font-size: 2.5em; margin-bottom: 15px; opacity: 0.5;"></i>
+              <p>Select an analysis to view logs with anomaly highlighting</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML =
+          '<div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading log viewer...</div>';
+
+        // Load log entries with pagination
+        loadLogEntries(fileId, 1);
+      }
+
+      function loadLogEntries(fileId, page = 1) {
+        const container = document.getElementById("logViewerContent");
+        const anomaliesOnly = false; // Can be made configurable
+
+        fetch(
+          `/api/uploaded/logs/${fileId}?page=${page}&per_page=100&anomalies_only=${anomaliesOnly}`
+        )
+          .then((response) => response.json())
+          .then((data) => {
+            renderLogViewer(fileId, data);
+          })
+          .catch((error) => {
+            container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #dc2626;">
+              <i class="fas fa-exclamation-circle" style="font-size: 2em; margin-bottom: 10px;"></i>
+              <p>Error loading logs: ${error.message}</p>
+            </div>
+          `;
+          });
+      }
+
+      function renderLogViewer(fileId, data) {
+        const container = document.getElementById("logViewerContent");
+
+        container.innerHTML = `
+          <div class="filter-controls">
+            <label>
+              <input type="checkbox" id="showAnomaliesOnly" onchange="toggleAnomaliesFilter('${fileId}')"> 
+              Show anomalies only
+            </label>
+            <label>
+              Severity filter:
+              <select id="severityFilter" onchange="applySeverityFilter('${fileId}')">
+                <option value="">All</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </label>
+          </div>
+
+          <div style="max-height: 600px; overflow-y: auto; border: 1px solid #e5e7eb; border-radius: 8px;">
+            ${data.logs
+              .map(
+                (log) => `
+              <div class="log-entry ${
+                log.is_anomaly ? "anomaly-" + log.severity : ""
+              }" 
+                   title="${
+                     log.is_anomaly
+                       ? "Anomaly Score: " + log.anomaly_score.toFixed(3)
+                       : "Normal log entry"
+                   }">
+                <span style="color: #666; margin-right: 10px;">${
+                  log.line_number
+                }:</span>
+                ${log.content}
+                ${
+                  log.is_anomaly
+                    ? `<span style="float: right; background: ${getSeverityColor(
+                        log.severity
+                      )}; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.8em;">${log.severity.toUpperCase()} (${log.anomaly_score.toFixed(
+                        3
+                      )})</span>`
+                    : ""
+                }
+              </div>
+            `
+              )
+              .join("")}
+          </div>
+
+          <div class="pagination-controls">
+            <div class="pagination-info">
+              Showing ${
+                (data.pagination.page - 1) * data.pagination.per_page + 1
+              }-${Math.min(
+          data.pagination.page * data.pagination.per_page,
+          data.pagination.total
+        )} of ${data.pagination.total} entries
+            </div>
+            <div class="pagination-buttons">
+              <button class="pagination-btn" ${
+                data.pagination.page <= 1 ? "disabled" : ""
+              } 
+                      onclick="loadLogEntries('${fileId}', ${
+          data.pagination.page - 1
+        })">
+                <i class="fas fa-chevron-left"></i> Previous
+              </button>
+              <span style="padding: 0 10px;">Page ${data.pagination.page} of ${
+          data.pagination.pages
+        }</span>
+              <button class="pagination-btn" ${
+                data.pagination.page >= data.pagination.pages ? "disabled" : ""
+              } 
+                      onclick="loadLogEntries('${fileId}', ${
+          data.pagination.page + 1
+        })">
+                Next <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      function getSeverityColor(severity) {
+        switch (severity) {
+          case "critical":
+            return "#dc2626";
+          case "high":
+            return "#f59e0b";
+          case "medium":
+            return "#3b82f6";
+          case "low":
+            return "#10b981";
+          default:
+            return "#6b7280";
+        }
+      }
+
+      function loadAlertsViewer(fileId) {
+        const container = document.getElementById("alertsContent");
+
+        if (!fileId) {
+          container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #999;">
+              <i class="fas fa-bell" style="font-size: 2.5em; margin-bottom: 15px; opacity: 0.5;"></i>
+              <p>Select an analysis to view generated alerts</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML =
+          '<div style="text-align: center; padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading alerts...</div>';
+
+        fetch(`/api/uploaded/alerts/${fileId}`)
+          .then((response) => response.json())
+          .then((data) => {
+            renderAlertsViewer(fileId, data);
+          })
+          .catch((error) => {
+            container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #dc2626;">
+              <i class="fas fa-exclamation-circle" style="font-size: 2em; margin-bottom: 10px;"></i>
+              <p>Error loading alerts: ${error.message}</p>
+            </div>
+          `;
+          });
+      }
+
+      function renderAlertsViewer(fileId, data) {
+        const container = document.getElementById("alertsContent");
+
+        if (!data.alerts || data.alerts.length === 0) {
+          container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #999;">
+              <i class="fas fa-check-circle" style="font-size: 2.5em; margin-bottom: 15px; opacity: 0.5;"></i>
+              <p>No alerts generated for this analysis</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="filter-controls">
+            <label>
+              Severity filter:
+              <select onchange="filterAlerts('${fileId}', this.value)">
+                <option value="">All Severities</option>
+                <option value="CRITICAL">Critical</option>
+                <option value="HIGH">High</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="LOW">Low</option>
+              </select>
+            </label>
+          </div>
+
+          <div style="max-height: 600px; overflow-y: auto;">
+            ${data.alerts
+              .map(
+                (alert) => `
+              <div class="alert-item ${alert.severity.toLowerCase()}">
+                <div class="alert-header">
+                  <div class="alert-title">
+                    <i class="fas fa-exclamation-triangle"></i> ${alert.message}
+                  </div>
+                  <div class="alert-severity ${alert.severity.toLowerCase()}">${
+                  alert.severity
+                }</div>
+                </div>
+                <div style="margin-bottom: 8px;">
+                  <strong>Service:</strong> ${alert.service} | 
+                  <strong>IP:</strong> ${alert.ip_address} | 
+                  <strong>Score:</strong> ${alert.anomaly_score.toFixed(3)} | 
+                  <strong>Line:</strong> ${alert.line_number}
+                </div>
+                <div style="font-size: 0.9em; color: #666;">
+                  <strong>Timestamp:</strong> ${new Date(
+                    alert.timestamp
+                  ).toLocaleString()} | 
+                  <strong>Created:</strong> ${new Date(
+                    alert.created_at
+                  ).toLocaleString()}
+                </div>
+                <div style="margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; font-family: monospace; font-size: 0.85em;">
+                  ${alert.details.raw_line}
+                </div>
+              </div>
+            `
+              )
+              .join("")}
+          </div>
+
+          <div class="pagination-controls">
+            <div class="pagination-info">
+              Showing ${data.alerts.length} alerts
+            </div>
+          </div>
+        `;
+      }
+
+      function deleteAnalysis(fileId, event) {
+        if (event) {
+          event.stopPropagation();
+        }
+
+        if (
+          !confirm(
+            "Are you sure you want to delete this analysis? This action cannot be undone."
+          )
+        ) {
+          return;
+        }
+
+        fetch(`/api/uploaded/delete/${fileId}`, {
+          method: "DELETE",
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.status === "success") {
+              // Remove from UI
+              if (selectedAnalysisId === fileId) {
+                selectedAnalysisId = null;
+              }
+              loadRecentAnalyses();
+              alert("Analysis deleted successfully");
+            } else {
+              throw new Error(data.error || "Delete failed");
+            }
+          })
+          .catch((error) => {
+            alert("Error deleting analysis: " + error.message);
+          });
+      }
+
+      // Helper functions for log viewer filters
+      function toggleAnomaliesFilter(fileId) {
+        const showAnomaliesOnly =
+          document.getElementById("showAnomaliesOnly").checked;
+        // Reload log entries with filter
+        loadLogEntries(fileId, 1, showAnomaliesOnly);
+      }
+
+      function applySeverityFilter(fileId) {
+        const severity = document.getElementById("severityFilter").value;
+        // This would need backend support for severity filtering
+        loadLogEntries(fileId, 1);
+      }
+
+      function filterAlerts(fileId, severity) {
+        // Reload alerts with severity filter
+        fetch(`/api/uploaded/alerts/${fileId}?severity=${severity}`)
+          .then((response) => response.json())
+          .then((data) => {
+            renderAlertsViewer(fileId, data);
+          });
+      }
     </script>
   </body>
 </html>

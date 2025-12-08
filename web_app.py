@@ -23,6 +23,11 @@ from datetime import datetime
 from collections import deque
 from config import FLASK_HOST, FLASK_PORT, FLASK_DEBUG, SPARK_UI_PORT
 
+# Import Spark components for uploaded dataset analysis
+from pyspark.sql import SparkSession
+from log_parser import LogParser
+from anomaly_detector import AnomalyDetector
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'anomaly-detection-secret-key'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
@@ -30,6 +35,31 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
+# Initialize Spark Session (shared across all uploaded dataset analyses)
+spark_session = None
+spark_lock = threading.Lock()
+
+def get_spark_session():
+    """Get or create Spark session for uploaded dataset analysis"""
+    global spark_session
+    with spark_lock:
+        if spark_session is None:
+            print("🚀 Initializing Spark Session for uploaded dataset analysis...")
+            spark_session = SparkSession.builder \
+                .appName("Uploaded Dataset Anomaly Detection") \
+                .master("local[*]") \
+                .config("spark.driver.memory", "2g") \
+                .config("spark.executor.memory", "2g") \
+                .config("spark.sql.shuffle.partitions", "4") \
+                .config("spark.ui.port", str(SPARK_UI_PORT)) \
+                .config("spark.ui.showConsoleProgress", "true") \
+                .getOrCreate()
+            
+            spark_session.sparkContext.setLogLevel("WARN")
+            print(f"✅ Spark Session initialized - Web UI at http://localhost:{SPARK_UI_PORT}")
+        
+        return spark_session
 
 # Store recent anomalies and statistics
 recent_anomalies = deque(maxlen=100)
@@ -41,6 +71,409 @@ statistics = {
     "services_affected": set(),
     "suspicious_ips": set()
 }
+
+# ========== UPLOADED DATASET ANALYSIS SECTION ==========
+# Separate tracking for uploaded dataset analysis
+uploaded_dataset_results = {}  # Store results by file_id
+uploaded_anomalies = {}  # Store anomalies by file_id
+uploaded_alerts = {}  # Store alerts by file_id
+uploaded_statistics = {}  # Store statistics by file_id
+
+# Active dataset analysis tracking
+active_analyses = {}  # Track ongoing analyses
+
+class UploadedDatasetAnalyzer:
+    """Handles analysis of uploaded log datasets using Spark MLlib"""
+    
+    @staticmethod
+    def generate_file_id(filepath):
+        """Generate unique ID for uploaded file"""
+        filename = os.path.basename(filepath)
+        timestamp = os.path.getmtime(filepath)
+        return f"{filename}_{int(timestamp)}"
+    
+    @staticmethod
+    def analyze_uploaded_logs_with_spark(filepath, file_id, options=None):
+        """
+        Analyze uploaded log file for anomalies using Spark MLlib
+        This makes the processing visible in Spark Web UI
+        """
+        if options is None:
+            options = {}
+        
+        use_spark_mllib = options.get('use_spark_mllib', True)
+        generate_alerts = options.get('generate_alerts', True)
+        anomaly_threshold = options.get('anomaly_threshold', 0.4)
+        
+        try:
+            print(f"\n{'='*80}")
+            print(f"🔍 Starting Spark-based analysis for: {os.path.basename(filepath)}")
+            print(f"📊 Options: MLlib={use_spark_mllib}, Alerts={generate_alerts}, Threshold={anomaly_threshold}")
+            print(f"{'='*80}\n")
+            
+            start_time = time.time()
+            
+            # Get Spark session
+            spark = get_spark_session()
+            
+            # Update job description for Spark UI
+            spark.sparkContext.setJobDescription(f"Analyzing Uploaded Dataset: {os.path.basename(filepath)}")
+            
+            # Read log file into Spark DataFrame
+            print("📖 Reading log file into Spark DataFrame...")
+            log_df = spark.read.text(filepath)
+            total_logs = log_df.count()
+            print(f"✅ Loaded {total_logs} log entries")
+            
+            # Emit progress update
+            socketio.emit('dataset_analysis_progress', {
+                'file_id': file_id,
+                'progress': 20,
+                'status': f'Loaded {total_logs} log entries',
+                'details': 'Parsing log entries...'
+            })
+            
+            if use_spark_mllib:
+                # Use Spark MLlib pipeline
+                anomalies, alerts, stats = UploadedDatasetAnalyzer._analyze_with_spark_mllib(
+                    spark, log_df, file_id, filepath, total_logs, anomaly_threshold, generate_alerts
+                )
+            else:
+                # Use pattern-based analysis (still with Spark for processing)
+                anomalies, alerts, stats = UploadedDatasetAnalyzer._analyze_with_patterns(
+                    spark, log_df, file_id, filepath, total_logs, anomaly_threshold, generate_alerts
+                )
+            
+            # Calculate processing time
+            processing_time = round(time.time() - start_time, 2)
+            stats["processing_time"] = processing_time
+            stats["analysis_method"] = "Spark MLlib" if use_spark_mllib else "Pattern Matching (Spark-accelerated)"
+            
+            # Convert sets to lists for JSON serialization
+            if isinstance(stats.get("services_analyzed"), set):
+                stats["services_analyzed"] = list(stats["services_analyzed"])
+            if isinstance(stats.get("suspicious_ips_found"), set):
+                stats["suspicious_ips_found"] = list(stats["suspicious_ips_found"])
+            
+            # Store results
+            uploaded_dataset_results[file_id] = {
+                "filepath": filepath,
+                "filename": os.path.basename(filepath),
+                "analysis_completed": datetime.now().isoformat(),
+                "stats": stats,
+                "status": "completed",
+                "spark_job_url": f"http://localhost:{SPARK_UI_PORT}"
+            }
+            
+            uploaded_anomalies[file_id] = anomalies
+            uploaded_alerts[file_id] = alerts
+            uploaded_statistics[file_id] = stats
+            
+            print(f"\n{'='*80}")
+            print(f"✅ Analysis Complete!")
+            print(f"📊 Total Logs: {stats['total_logs']}")
+            print(f"🚨 Anomalies Found: {stats['anomalies_found']}")
+            print(f"⚠️  Critical Alerts: {stats['critical_alerts']}")
+            print(f"⏱️  Processing Time: {processing_time}s")
+            print(f"🌐 View Spark Jobs: http://localhost:{SPARK_UI_PORT}")
+            print(f"{'='*80}\n")
+            
+            return True, stats, anomalies, alerts
+            
+        except Exception as e:
+            print(f"❌ Error in Spark analysis: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return False, str(e), [], []
+    
+    @staticmethod
+    def _analyze_with_spark_mllib(spark, log_df, file_id, filepath, total_logs, threshold, generate_alerts):
+        """Analyze using Spark MLlib KMeans clustering"""
+        print("🤖 Using Spark MLlib for anomaly detection...")
+        
+        # Update Spark job description
+        spark.sparkContext.setJobDescription(f"MLlib Analysis: {os.path.basename(filepath)} - Parsing Logs")
+        
+        # Parse logs
+        parser = LogParser(spark)
+        parsed_df = parser.parse_log_line(log_df)
+        
+        socketio.emit('dataset_analysis_progress', {
+            'file_id': file_id,
+            'progress': 40,
+            'status': 'Extracting features',
+            'details': 'Creating feature vectors for ML model...'
+        })
+        
+        # Extract features
+        spark.sparkContext.setJobDescription(f"MLlib Analysis: {os.path.basename(filepath)} - Feature Extraction")
+        feature_df = parser.extract_features(parsed_df)
+        
+        # Create feature vectors and scale
+        spark.sparkContext.setJobDescription(f"MLlib Analysis: {os.path.basename(filepath)} - Feature Scaling")
+        scaled_df, scaler_model = parser.create_feature_vector(feature_df)
+        
+        socketio.emit('dataset_analysis_progress', {
+            'file_id': file_id,
+            'progress': 60,
+            'status': 'Training ML model',
+            'details': 'Running KMeans clustering...'
+        })
+        
+        # Train and detect anomalies
+        spark.sparkContext.setJobDescription(f"MLlib Analysis: {os.path.basename(filepath)} - Anomaly Detection")
+        detector = AnomalyDetector(spark)
+        detector.train_kmeans(scaled_df, k=5)
+        
+        anomaly_df = detector.ensemble_anomaly_detection(scaled_df)
+        
+        socketio.emit('dataset_analysis_progress', {
+            'file_id': file_id,
+            'progress': 80,
+            'status': 'Processing results',
+            'details': 'Collecting anomalies and generating alerts...'
+        })
+        
+        # Collect results
+        spark.sparkContext.setJobDescription(f"MLlib Analysis: {os.path.basename(filepath)} - Collecting Results")
+        results = anomaly_df.filter(anomaly_df.final_anomaly_score >= threshold).collect()
+        
+        # Convert to anomalies and alerts
+        anomalies = []
+        alerts = []
+        stats = UploadedDatasetAnalyzer._initialize_stats(total_logs)
+        
+        for row in results:
+            anomaly_data = {
+                'timestamp': str(row.timestamp) if row.timestamp else datetime.now().isoformat(),
+                'level': row.level,
+                'service': row.service,
+                'message': row.message,
+                'ip_address': row.ip_address,
+                'user': row.user,
+                'response_time': row.response_time,  # Changed from response_time_ms
+                'anomaly_score': float(row.final_anomaly_score),
+                'file_id': file_id,
+                'analysis_type': 'spark_mllib',
+                'cluster': int(row.cluster) if hasattr(row, 'cluster') else None
+            }
+            
+            anomalies.append(anomaly_data)
+            
+            # Update statistics
+            UploadedDatasetAnalyzer._update_stats(stats, anomaly_data)
+            
+            # Generate alerts
+            if generate_alerts and anomaly_data['anomaly_score'] >= 0.5:
+                alert = UploadedDatasetAnalyzer.create_alert(anomaly_data, anomaly_data['anomaly_score'])
+                if alert:
+                    alerts.append(alert)
+                    UploadedDatasetAnalyzer._update_alert_stats(stats, alert)
+        
+        stats["anomalies_found"] = len(anomalies)
+        
+        return anomalies, alerts, stats
+    
+    @staticmethod
+    def _analyze_with_patterns(spark, log_df, file_id, filepath, total_logs, threshold, generate_alerts):
+        """Analyze using pattern-based detection (Spark-accelerated)"""
+        print("🔍 Using pattern-based analysis with Spark acceleration...")
+        
+        from pyspark.sql.functions import col, lower, when, lit
+        
+        # Update Spark job description
+        spark.sparkContext.setJobDescription(f"Pattern Analysis: {os.path.basename(filepath)} - Detecting Patterns")
+        
+        socketio.emit('dataset_analysis_progress', {
+            'file_id': file_id,
+            'progress': 50,
+            'status': 'Pattern detection',
+            'details': 'Analyzing log patterns with Spark...'
+        })
+        
+        # Parse logs first
+        parser = LogParser(spark)
+        parsed_df = parser.parse_log_line(log_df)
+        
+        # Add anomaly scoring based on patterns
+        error_keywords = ['timeout', 'error', 'exception', 'failed', 'critical', 
+                         'denied', 'exhausted', 'deadlock', 'breach', 'attack']
+        
+        # Calculate anomaly score using Spark SQL
+        anomaly_expr = lit(0.0)
+        
+        # Level-based scoring
+        anomaly_expr = when(col("level") == "ERROR", anomaly_expr + 0.4) \
+                      .when(col("level") == "WARN", anomaly_expr + 0.2) \
+                      .otherwise(anomaly_expr)
+        
+        # Response time scoring
+        anomaly_expr = when(col("response_time") > 5000, anomaly_expr + 0.3) \
+                      .when(col("response_time") > 1000, anomaly_expr + 0.1) \
+                      .otherwise(anomaly_expr)
+        
+        # Message pattern scoring
+        message_lower = lower(col("message"))
+        for keyword in error_keywords:
+            anomaly_expr = when(message_lower.contains(keyword), anomaly_expr + 0.2) \
+                          .otherwise(anomaly_expr)
+        
+        parsed_df = parsed_df.withColumn("anomaly_score", anomaly_expr)
+        
+        # Filter anomalies
+        anomaly_df = parsed_df.filter(col("anomaly_score") >= threshold)
+        
+        socketio.emit('dataset_analysis_progress', {
+            'file_id': file_id,
+            'progress': 80,
+            'status': 'Collecting results',
+            'details': 'Gathering anomalies from Spark...'
+        })
+        
+        # Collect results
+        results = anomaly_df.collect()
+        
+        # Convert to anomalies and alerts
+        anomalies = []
+        alerts = []
+        stats = UploadedDatasetAnalyzer._initialize_stats(total_logs)
+        
+        for row in results:
+            anomaly_data = {
+                'timestamp': str(row.timestamp) if row.timestamp else datetime.now().isoformat(),
+                'level': row.level,
+                'service': row.service,
+                'message': row.message,
+                'ip_address': row.ip_address,
+                'user': row.user,
+                'response_time': row.response_time,
+                'anomaly_score': float(row.anomaly_score),
+                'file_id': file_id,
+                'analysis_type': 'pattern_spark'
+            }
+            
+            anomalies.append(anomaly_data)
+            UploadedDatasetAnalyzer._update_stats(stats, anomaly_data)
+            
+            # Generate alerts
+            if generate_alerts and anomaly_data['anomaly_score'] >= 0.5:
+                alert = UploadedDatasetAnalyzer.create_alert(anomaly_data, anomaly_data['anomaly_score'])
+                if alert:
+                    alerts.append(alert)
+                    UploadedDatasetAnalyzer._update_alert_stats(stats, alert)
+        
+        stats["anomalies_found"] = len(anomalies)
+        
+        return anomalies, alerts, stats
+    
+    @staticmethod
+    def _initialize_stats(total_logs):
+        """Initialize statistics dictionary"""
+        return {
+            "total_logs": total_logs,
+            "anomalies_found": 0,
+            "critical_alerts": 0,
+            "high_risk_alerts": 0,
+            "medium_risk_alerts": 0,
+            "low_risk_alerts": 0,
+            "services_analyzed": [],  # Changed from set() to list
+            "suspicious_ips_found": [],  # Changed from set() to list
+            "error_patterns": {},
+            "time_range": {"start": None, "end": None},
+            "processing_time": 0
+        }
+    
+    @staticmethod
+    def _update_stats(stats, anomaly_data):
+        """Update statistics with anomaly data"""
+        if anomaly_data.get('service'):
+            service = anomaly_data['service']
+            if service not in stats["services_analyzed"]:
+                stats["services_analyzed"].append(service)
+        
+        if anomaly_data.get('ip_address'):
+            ip = anomaly_data['ip_address']
+            if ip not in stats["suspicious_ips_found"]:
+                stats["suspicious_ips_found"].append(ip)
+        
+        # Track time range
+        if anomaly_data.get('timestamp'):
+            if not stats["time_range"]["start"]:
+                stats["time_range"]["start"] = anomaly_data['timestamp']
+            stats["time_range"]["end"] = anomaly_data['timestamp']
+        
+        # Track error patterns
+        if anomaly_data.get('level') == 'ERROR':
+            error_type = anomaly_data.get('message', 'Unknown Error')[:50]
+            stats["error_patterns"][error_type] = stats["error_patterns"].get(error_type, 0) + 1
+    
+    @staticmethod
+    def _update_alert_stats(stats, alert):
+        """Update alert statistics"""
+        severity = alert.get('severity', '').upper()
+        if severity == 'CRITICAL':
+            stats["critical_alerts"] += 1
+        elif severity == 'HIGH':
+            stats["high_risk_alerts"] += 1
+        elif severity == 'MEDIUM':
+            stats["medium_risk_alerts"] += 1
+        else:
+            stats["low_risk_alerts"] += 1
+    
+    @staticmethod
+    def analyze_uploaded_logs(filepath, file_id):
+        """Legacy pattern-based analysis (fallback)"""
+        # ...existing code...
+        pass
+    
+    # ...existing helper methods (parse_log_line, calculate_anomaly_score, create_alert)...
+    
+    @staticmethod
+    def create_alert(anomaly_data, anomaly_score):
+        """Create alert based on anomaly data"""
+        if anomaly_score < 0.5:
+            return None
+        
+        # Determine severity
+        if anomaly_score >= 0.9:
+            severity = 'CRITICAL'
+            priority = 1
+        elif anomaly_score >= 0.7:
+            severity = 'HIGH'
+            priority = 2
+        elif anomaly_score >= 0.5:
+            severity = 'MEDIUM'
+            priority = 3
+        else:
+            severity = 'LOW'
+            priority = 4
+        
+        # Generate alert message
+        service = anomaly_data.get('service', 'Unknown')
+        message = anomaly_data.get('message', 'Unknown error')
+        ip = anomaly_data.get('ip_address', 'Unknown')
+        
+        alert_message = f"{severity} anomaly in {service}: {message[:100]}"
+        
+        return {
+            'id': f"alert_{int(time.time() * 1000)}_{anomaly_data.get('line_number', 0)}",
+            'severity': severity,
+            'priority': priority,
+            'message': alert_message,
+            'service': service,
+            'ip_address': ip,
+            'timestamp': anomaly_data.get('timestamp', datetime.now().isoformat()),
+            'anomaly_score': anomaly_score,
+            'line_number': anomaly_data.get('line_number'),
+            'file_id': anomaly_data.get('file_id'),
+            'created_at': datetime.now().isoformat(),
+            'details': {
+                'level': anomaly_data.get('level'),
+                'user': anomaly_data.get('user'),
+                'response_time': anomaly_data.get('response_time'),
+                'analysis_type': anomaly_data.get('analysis_type', 'unknown')
+            }
+        }
 
 # System status tracking
 system_status = {
@@ -359,6 +792,417 @@ def view_log(filename):
         
         return jsonify({"error": "File not found"}), 404
     
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ========== UPLOADED DATASET ANALYSIS API ENDPOINTS ==========
+
+@app.route('/api/uploaded/analyze', methods=['POST'])
+def analyze_uploaded_dataset():
+    """Analyze uploaded dataset for anomalies and generate alerts"""
+    data = request.get_json()
+    filepath = data.get('filepath')
+    options = data.get('options', {})
+    
+    if not filepath or not os.path.exists(filepath):
+        return jsonify({"error": "Invalid file path"}), 400
+    
+    try:
+        # Generate file ID
+        file_id = UploadedDatasetAnalyzer.generate_file_id(filepath)
+        
+        # Mark analysis as active
+        active_analyses[file_id] = {
+            "status": "processing",
+            "start_time": time.time(),
+            "filepath": filepath,
+            "filename": os.path.basename(filepath)
+        }
+        
+        # Start analysis in background thread
+        def analyze_in_background():
+            try:
+                socketio.emit('dataset_analysis_started', {
+                    "file_id": file_id,
+                    "filename": os.path.basename(filepath),
+                    "status": "processing"
+                })
+                
+                # Use Spark-based analysis with user options
+                success, stats, anomalies, alerts = UploadedDatasetAnalyzer.analyze_uploaded_logs_with_spark(
+                    filepath, file_id, options
+                )
+                
+                if success:
+                    active_analyses[file_id]["status"] = "completed"
+                    socketio.emit('dataset_analysis_completed', {
+                        "file_id": file_id,
+                        "stats": stats,
+                        "anomalies_count": len(anomalies),
+                        "alerts_count": len(alerts),
+                        "status": "completed",
+                        "method": stats.get('analysis_method', 'Spark MLlib')
+                    })
+                else:
+                    active_analyses[file_id]["status"] = "failed"
+                    active_analyses[file_id]["error"] = stats
+                    socketio.emit('dataset_analysis_failed', {
+                        "file_id": file_id,
+                        "error": stats,
+                        "status": "failed"
+                    })
+                    
+            except Exception as e:
+                active_analyses[file_id]["status"] = "failed"
+                active_analyses[file_id]["error"] = str(e)
+                socketio.emit('dataset_analysis_failed', {
+                    "file_id": file_id,
+                    "error": str(e),
+                    "status": "failed"
+                })
+        
+        analysis_thread = threading.Thread(target=analyze_in_background, daemon=True)
+        analysis_thread.start()
+        
+        return jsonify({
+            "status": "success",
+            "message": "Analysis started with Spark",
+            "file_id": file_id,
+            "filename": os.path.basename(filepath),
+            "spark_ui_url": f"http://localhost:{SPARK_UI_PORT}"
+        }), 202
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/uploaded/results/<file_id>')
+def get_uploaded_analysis_results(file_id):
+    """Get analysis results for uploaded dataset"""
+    if file_id not in uploaded_dataset_results:
+        return jsonify({"error": "Analysis not found"}), 404
+    
+    results = uploaded_dataset_results[file_id]
+    stats = uploaded_statistics.get(file_id, {})
+    
+    return jsonify({
+        "file_id": file_id,
+        "results": results,
+        "statistics": stats,
+        "anomalies_count": len(uploaded_anomalies.get(file_id, [])),
+        "alerts_count": len(uploaded_alerts.get(file_id, []))
+    })
+
+@app.route('/api/uploaded/anomalies/<file_id>')
+def get_uploaded_anomalies(file_id):
+    """Get anomalies found in uploaded dataset"""
+    if file_id not in uploaded_anomalies:
+        return jsonify({"error": "Analysis not found"}), 404
+    
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)
+    severity_filter = request.args.get('severity', None)
+    service_filter = request.args.get('service', None)
+    
+    anomalies = uploaded_anomalies[file_id]
+    
+    # Apply filters
+    filtered_anomalies = anomalies
+    if severity_filter:
+        filtered_anomalies = [a for a in filtered_anomalies if a.get('anomaly_score', 0) >= float(severity_filter)]
+    if service_filter:
+        filtered_anomalies = [a for a in filtered_anomalies if a.get('service') == service_filter]
+    
+    # Pagination
+    total = len(filtered_anomalies)
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_anomalies = filtered_anomalies[start:end]
+    
+    return jsonify({
+        "file_id": file_id,
+        "anomalies": paginated_anomalies,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "pages": (total + per_page - 1) // per_page
+        }
+    })
+
+@app.route('/api/uploaded/alerts/<file_id>')
+def get_uploaded_alerts(file_id):
+    """Get alerts generated from uploaded dataset analysis"""
+    if file_id not in uploaded_alerts:
+        return jsonify({"error": "Analysis not found"}), 404
+    
+    severity_filter = request.args.get('severity', None)
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    
+    alerts = uploaded_alerts[file_id]
+    
+    # Apply severity filter
+    if severity_filter:
+        alerts = [a for a in alerts if a.get('severity') == severity_filter.upper()]
+    
+    # Sort by priority and timestamp
+    alerts.sort(key=lambda x: (x.get('priority', 999), x.get('timestamp', '')), reverse=True)
+    
+    # Pagination
+    total = len(alerts)
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_alerts = alerts[start:end]
+    
+    return jsonify({
+        "file_id": file_id,
+        "alerts": paginated_alerts,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "pages": (total + per_page - 1) // per_page
+        }
+    })
+
+@app.route('/api/uploaded/statistics/<file_id>')
+def get_uploaded_statistics(file_id):
+    """Get detailed statistics for uploaded dataset analysis"""
+    if file_id not in uploaded_statistics:
+        return jsonify({"error": "Analysis not found"}), 404
+    
+    stats = uploaded_statistics[file_id]
+    
+    return jsonify({
+        "file_id": file_id,
+        "statistics": stats,
+        "summary": {
+            "anomaly_rate": round(stats.get('anomalies_found', 0) / max(stats.get('total_logs', 1), 1) * 100, 2),
+            "critical_rate": round(stats.get('critical_alerts', 0) / max(stats.get('anomalies_found', 1), 1) * 100, 2),
+            "services_count": len(stats.get('services_analyzed', [])),
+            "suspicious_ips_count": len(stats.get('suspicious_ips_found', [])),
+            "error_patterns_count": len(stats.get('error_patterns', {}))
+        }
+    })
+
+@app.route('/api/uploaded/timeline/<file_id>')
+def get_uploaded_timeline(file_id):
+    """Get timeline data for uploaded dataset anomalies"""
+    if file_id not in uploaded_anomalies:
+        return jsonify({"error": "Analysis not found"}), 404
+    
+    anomalies = uploaded_anomalies[file_id]
+    
+    # Group anomalies by hour
+    timeline = {}
+    for anomaly in anomalies:
+        timestamp = anomaly.get('timestamp', '')
+        if timestamp:
+            hour_key = timestamp[:13]  # YYYY-MM-DD HH
+            if hour_key not in timeline:
+                timeline[hour_key] = {"count": 0, "critical": 0, "high": 0, "medium": 0, "low": 0}
+            
+            timeline[hour_key]["count"] += 1
+            
+            # Categorize by severity
+            score = anomaly.get('anomaly_score', 0)
+            if score >= 0.9:
+                timeline[hour_key]["critical"] += 1
+            elif score >= 0.7:
+                timeline[hour_key]["high"] += 1
+            elif score >= 0.5:
+                timeline[hour_key]["medium"] += 1
+            else:
+                timeline[hour_key]["low"] += 1
+    
+    # Sort by timestamp
+    sorted_timeline = dict(sorted(timeline.items()))
+    
+    return jsonify({
+        "file_id": file_id,
+        "timeline": sorted_timeline,
+        "timestamps": list(sorted_timeline.keys()),
+        "total_periods": len(sorted_timeline)
+    })
+
+@app.route('/api/uploaded/distribution/<file_id>')
+def get_uploaded_distribution(file_id):
+    """Get service and severity distribution for uploaded dataset"""
+    if file_id not in uploaded_anomalies:
+        return jsonify({"error": "Analysis not found"}), 404
+    
+    anomalies = uploaded_anomalies[file_id]
+    
+    # Service distribution
+    service_dist = {}
+    severity_dist = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+    ip_dist = {}
+    
+    for anomaly in anomalies:
+        # Service distribution
+        service = anomaly.get('service', 'Unknown')
+        service_dist[service] = service_dist.get(service, 0) + 1
+        
+        # Severity distribution
+        score = anomaly.get('anomaly_score', 0)
+        if score >= 0.9:
+            severity_dist["critical"] += 1
+        elif score >= 0.7:
+            severity_dist["high"] += 1
+        elif score >= 0.5:
+            severity_dist["medium"] += 1
+        else:
+            severity_dist["low"] += 1
+        
+        # IP distribution (top suspicious IPs)
+        ip = anomaly.get('ip_address', 'Unknown')
+        ip_dist[ip] = ip_dist.get(ip, 0) + 1
+    
+    # Get top 10 IPs
+    top_ips = dict(sorted(ip_dist.items(), key=lambda x: x[1], reverse=True)[:10])
+    
+    return jsonify({
+        "file_id": file_id,
+        "service_distribution": service_dist,
+        "severity_distribution": severity_dist,
+        "ip_distribution": top_ips
+    })
+
+@app.route('/api/uploaded/logs/<file_id>')
+def get_uploaded_logs_view(file_id):
+    """Get paginated log view for uploaded dataset with anomaly highlighting"""
+    if file_id not in uploaded_dataset_results:
+        return jsonify({"error": "Analysis not found"}), 404
+    
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 100, type=int)
+    show_anomalies_only = request.args.get('anomalies_only', 'false').lower() == 'true'
+    
+    filepath = uploaded_dataset_results[file_id]['filepath']
+    
+    try:
+        with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+            all_lines = f.readlines()
+        
+        # Get anomaly line numbers for highlighting
+        anomalies = uploaded_anomalies.get(file_id, [])
+        anomaly_lines = {a.get('line_number'): a for a in anomalies}
+        
+        # Prepare log entries
+        log_entries = []
+        for i, line in enumerate(all_lines, 1):
+            line = line.strip()
+            if not line:
+                continue
+            
+            is_anomaly = i in anomaly_lines
+            
+            if show_anomalies_only and not is_anomaly:
+                continue
+            
+            entry = {
+                "line_number": i,
+                "content": line,
+                "is_anomaly": is_anomaly,
+                "anomaly_score": anomaly_lines[i].get('anomaly_score', 0) if is_anomaly else 0,
+                "severity": "critical" if is_anomaly and anomaly_lines[i].get('anomaly_score', 0) >= 0.9 else
+                          "high" if is_anomaly and anomaly_lines[i].get('anomaly_score', 0) >= 0.7 else
+                          "medium" if is_anomaly and anomaly_lines[i].get('anomaly_score', 0) >= 0.5 else
+                          "low" if is_anomaly else "normal"
+            }
+            
+            log_entries.append(entry)
+        
+        # Pagination
+        total = len(log_entries)
+        start = (page - 1) * per_page
+        end = start + per_page
+        paginated_entries = log_entries[start:end]
+        
+        return jsonify({
+            "file_id": file_id,
+            "logs": paginated_entries,
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": total,
+                "pages": (total + per_page - 1) // per_page
+            },
+            "filters": {
+                "anomalies_only": show_anomalies_only
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/uploaded/list')
+def list_uploaded_analyses():
+    """List all uploaded dataset analyses"""
+    analyses = []
+    
+    for file_id, result in uploaded_dataset_results.items():
+        stats = uploaded_statistics.get(file_id, {})
+        analyses.append({
+            "file_id": file_id,
+            "filename": result.get('filename', 'Unknown'),
+            "analysis_completed": result.get('analysis_completed'),
+            "status": result.get('status', 'unknown'),
+            "total_logs": stats.get('total_logs', 0),
+            "anomalies_found": stats.get('anomalies_found', 0),
+            "critical_alerts": stats.get('critical_alerts', 0),
+            "processing_time": stats.get('processing_time', 0)
+        })
+    
+    # Sort by completion time (newest first)
+    analyses.sort(key=lambda x: x.get('analysis_completed', ''), reverse=True)
+    
+    return jsonify({
+        "analyses": analyses,
+        "total_count": len(analyses)
+    })
+
+@app.route('/api/uploaded/delete/<file_id>', methods=['DELETE'])
+def delete_uploaded_analysis(file_id):
+    """Delete uploaded dataset analysis results"""
+    try:
+        # Remove from all tracking dictionaries
+        deleted_items = []
+        
+        if file_id in uploaded_dataset_results:
+            del uploaded_dataset_results[file_id]
+            deleted_items.append('results')
+        
+        if file_id in uploaded_anomalies:
+            del uploaded_anomalies[file_id]
+            deleted_items.append('anomalies')
+        
+        if file_id in uploaded_alerts:
+            del uploaded_alerts[file_id]
+            deleted_items.append('alerts')
+        
+        if file_id in uploaded_statistics:
+            del uploaded_statistics[file_id]
+            deleted_items.append('statistics')
+        
+        if file_id in active_analyses:
+            del active_analyses[file_id]
+            deleted_items.append('active_analysis')
+        
+        if not deleted_items:
+            return jsonify({"error": "Analysis not found"}), 404
+        
+        socketio.emit('dataset_analysis_deleted', {
+            "file_id": file_id,
+            "deleted_items": deleted_items
+        })
+        
+        return jsonify({
+            "status": "success",
+            "message": f"Analysis {file_id} deleted successfully",
+            "deleted_items": deleted_items
+        })
+        
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

@@ -18,6 +18,7 @@ A comprehensive PySpark-based system for detecting anomalies in server logs usin
 - **External Access**: Ngrok integration for remote dashboard access
 - **Spark Web UI**: Monitor Spark jobs and performance at `http://localhost:4040`
 - **Model Persistence**: Train once, use for future predictions
+- **Uploaded Dataset Analysis with Spark**: Process uploaded datasets through Apache Spark with real-time progress updates and Spark Web UI visibility
 
 ## 📋 Prerequisites
 
@@ -173,6 +174,50 @@ Detects:
 - Services with high error rates
 - Anomalous user-service interactions
 
+## 📂 Uploaded Dataset Analysis with Spark
+
+**All uploaded datasets are now processed through Apache Spark!** This means:
+
+✅ **Spark Web UI Visibility**: When you upload and analyze a dataset, the processing jobs appear in the Spark Web UI at `http://localhost:4040`
+
+✅ **Two Analysis Methods**:
+
+- **Spark MLlib** (Recommended): Uses KMeans clustering and ensemble anomaly detection
+- **Pattern Matching**: Spark-accelerated pattern-based detection for faster processing
+
+✅ **Real-time Progress Updates**: Live progress tracking in the dashboard as Spark processes your data
+
+✅ **Job Descriptions**: Each stage of the analysis has a clear job description in Spark UI:
+
+- "Analyzing Uploaded Dataset: [filename]"
+- "MLlib Analysis: [filename] - Parsing Logs"
+- "MLlib Analysis: [filename] - Feature Extraction"
+- "MLlib Analysis: [filename] - Anomaly Detection"
+- etc.
+
+### How to Use
+
+1. Navigate to the **Dataset Analysis** tab in the dashboard
+2. Upload your log file (.log or .txt, max 16MB)
+3. Configure analysis options:
+   - ☑️ Use Spark MLlib Analysis (recommended)
+   - ☑️ Generate Severity-based Alerts
+   - ☑️ Generate Network Analysis
+   - 🎚️ Adjust Anomaly Detection Threshold
+4. Click **Start Analysis**
+5. Open Spark Web UI (`http://localhost:4040`) to watch the processing in real-time
+6. View results, alerts, and log viewer when complete
+
+### Spark Web UI Features
+
+While your dataset is being analyzed, you can monitor:
+
+- **Jobs**: See each stage of the ML pipeline
+- **Stages**: View detailed task execution
+- **Storage**: Check cached RDDs and DataFrames
+- **Environment**: Verify Spark configuration
+- **Executors**: Monitor resource usage
+
 ## 🔧 Project Structure
 
 ```
@@ -260,6 +305,10 @@ Example:
 ### Issue: Port already in use
 
 **Solution**: Change FLASK_PORT in `config.py` or kill the process using port 5000
+
+### Issue: Spark Web UI not accessible
+
+**Solution**: Check if port 4040 is available, verify Spark session is initialized, and try accessing `http://localhost:4040` after starting an analysis.
 
 ## 🔒 Security Notes
 
