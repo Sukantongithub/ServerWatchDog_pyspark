@@ -1975,7 +1975,7 @@
           <button
             class="btn btn-primary"
             id="processBtn2"
-            onclick="processLog()"
+            onclick="processLog()
           >
             Process
           </button>
@@ -2147,7 +2147,328 @@
 
     <style>
       /* Dataset Analysis Modal Styles */
-      /* Styles omitted for brevity */
+      .analysis-tab {
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid transparent;
+        padding: 12px 20px;
+        cursor: pointer;
+        font-size: 0.95em;
+        color: #6b7280;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .analysis-tab:hover {
+        color: #0f766e;
+        background: #f0fdfa;
+      }
+
+      .analysis-tab.active {
+        color: #0f766e;
+        border-bottom-color: #0f766e;
+        font-weight: 600;
+        background: #f0fdfa;
+      }
+
+      .analysis-tab-content {
+        display: none;
+        padding: 20px 0;
+      }
+
+      .analysis-tab-content.active {
+        display: block;
+      }
+
+      .analysis-spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #e5e7eb;
+        border-top: 2px solid #0f766e;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .analysis-result-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .analysis-result-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+      }
+
+      .analysis-result-card.selected {
+        border-color: #0f766e;
+        box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.2);
+      }
+
+      .analysis-result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .analysis-result-title {
+        font-weight: 600;
+        color: #1f2937;
+        font-size: 1.1em;
+      }
+
+      .analysis-result-status {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8em;
+        font-weight: 600;
+      }
+
+      .analysis-result-status.completed {
+        background: #d1fae5;
+        color: #065f46;
+      }
+
+      .analysis-result-status.processing {
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      .analysis-result-status.failed {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+
+      .analysis-result-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .analysis-result-stat {
+        text-align: center;
+        padding: 8px;
+        background: #f9fafb;
+        border-radius: 6px;
+      }
+
+      .analysis-result-stat-value {
+        font-size: 1.2em;
+        font-weight: bold;
+        color: #0f766e;
+      }
+
+      .analysis-result-stat-label {
+        font-size: 0.8em;
+        color: #6b7280;
+        text-transform: uppercase;
+      }
+
+      .analysis-result-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85em;
+        color: #9ca3af;
+      }
+
+      .log-entry {
+        font-family: "Courier New", monospace;
+        font-size: 0.85em;
+        padding: 8px 12px;
+        margin-bottom: 2px;
+        border-left: 3px solid transparent;
+        background: #f8f9fa;
+        border-radius: 0 4px 4px 0;
+      }
+
+      .log-entry.anomaly-critical {
+        background: #fee2e2;
+        border-left-color: #dc2626;
+        color: #991b1b;
+      }
+
+      .log-entry.anomaly-high {
+        background: #fef3c7;
+        border-left-color: #f59e0b;
+        color: #92400e;
+      }
+
+      .log-entry.anomaly-medium {
+        background: #dbeafe;
+        border-left-color: #3b82f6;
+        color: #1e40af;
+      }
+
+      .log-entry.anomaly-low {
+        background: #d1fae5;
+        border-left-color: #10b981;
+        color: #065f46;
+      }
+
+      .alert-item {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-left: 4px solid #dc2626;
+      }
+
+      .alert-item.critical {
+        border-left-color: #dc2626;
+        background: #fef2f2;
+      }
+
+      .alert-item.high {
+        border-left-color: #f59e0b;
+        background: #fffbeb;
+      }
+
+      .alert-item.medium {
+        border-left-color: #3b82f6;
+        background: #eff6ff;
+      }
+
+      .alert-item.low {
+        border-left-color: #10b981;
+        background: #f0fdf4;
+      }
+
+      .alert-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      .alert-title {
+        font-weight: 600;
+        color: #1f2937;
+      }
+
+      .alert-severity {
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75em;
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      .alert-severity.critical {
+        background: #dc2626;
+        color: white;
+      }
+
+      .alert-severity.high {
+        background: #f59e0b;
+        color: white;
+      }
+
+      .alert-severity.medium {
+        background: #3b82f6;
+        color: white;
+      }
+
+      .alert-severity.low {
+        background: #10b981;
+        color: white;
+      }
+
+      .chart-container {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .chart-title {
+        color: #0f766e;
+        font-size: 1.1em;
+        font-weight: 600;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .filter-controls {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .filter-controls select,
+      .filter-controls input {
+        padding: 6px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 0.9em;
+      }
+
+      .pagination-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 20px;
+        padding: 15px 0;
+        border-top: 1px solid #e5e7eb;
+      }
+
+      .pagination-info {
+        font-size: 0.9em;
+        color: #6b7280;
+      }
+
+      .pagination-buttons {
+        display: flex;
+        gap: 8px;
+      }
+
+      .pagination-btn {
+        background: #f3f4f6;
+        border: 1px solid #d1d5db;
+        color: #374151;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9em;
+        transition: all 0.2s;
+      }
+
+      .pagination-btn:hover:not(:disabled) {
+        background: #e5e7eb;
+      }
+
+      .pagination-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .pagination-btn.active {
+        background: #0f766e;
+        color: white;
+        border-color: #0f766e;
+      }
     </style>
     <script>
       // Initialize Socket.IO connection
@@ -2530,6 +2851,409 @@
           });
       }
 
+      // Load network graph
+      let networkGraphSimulation = null;
+      let networkGraphPaused = false;
+      let networkGraphZoom = null;
+
+      function loadNetworkGraph() {
+        fetch("/api/graph_data")
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("📊 Graph data received:", data);
+
+            if (!data || !data.nodes || data.nodes.length === 0) {
+              console.warn("⚠️ No graph data available");
+              document.getElementById("networkGraph").innerHTML =
+                '<p style="text-align: center; padding: 50px; color: #999;">📊 Loading graph visualization...</p>';
+              return;
+            }
+
+            console.log(
+              `✅ Rendering graph with ${data.nodes.length} nodes and ${data.links.length} links`
+            );
+
+            // Update statistics
+            updateGraphStatistics(data);
+
+            // Render the graph
+            renderEnhancedNetworkGraph(data);
+          })
+          .catch((error) => {
+            console.error("❌ Error loading graph:", error);
+            document.getElementById("networkGraph").innerHTML =
+              '<p style="text-align: center; padding: 50px; color: red;">Error loading graph. Check console for details.</p>';
+          });
+      }
+
+      function renderEnhancedNetworkGraph(data) {
+        try {
+          const container = document.getElementById("networkGraph");
+          const width = container.clientWidth || 800;
+          const height = 600;
+
+          console.log(`🎨 Creating SVG: ${width}x${height}`);
+
+          // Clear previous content
+          container.innerHTML = "";
+
+          // Create a set of valid node IDs for faster lookup
+          const validNodeIds = new Set(data.nodes.map((n) => n.id));
+          console.log(`📋 Valid node IDs: ${validNodeIds.size}`);
+
+          // Filter links to only include those with valid source and target nodes
+          const validLinks = data.links.filter((link) => {
+            const sourceId = link.source.id || link.source;
+            const targetId = link.target.id || link.target;
+            const isValid =
+              validNodeIds.has(sourceId) && validNodeIds.has(targetId);
+            if (!isValid) {
+              console.warn(
+                `⚠️ Skipping invalid link: ${sourceId} -> ${targetId}`
+              );
+            }
+            return isValid;
+          });
+
+          console.log(
+            `✅ Filtered links: ${validLinks.length} / ${data.links.length} valid`
+          );
+
+          if (validLinks.length === 0) {
+            console.warn("⚠️ No valid links after filtering");
+          }
+
+          // Create SVG
+          const svg = d3
+            .select("#networkGraph")
+            .append("svg")
+            .attr("width", width)
+            .attr("height", height)
+            .style("background", "black")
+            .style("border-radius", "10px");
+
+          console.log("✅ SVG created");
+
+          // Add gradient definitions
+          const defs = svg.append("defs");
+
+          defs
+            .append("linearGradient")
+            .attr("id", "linkGradient")
+            .attr("x1", "0%")
+            .attr("y1", "0%")
+            .attr("x2", "100%")
+            .attr("y2", "100%")
+            .append("stop")
+            .attr("offset", "0%")
+            .attr("stop-color", "#0f766e");
+
+          // Add shadow filter
+          const filter = defs
+            .append("filter")
+            .attr("id", "shadow")
+            .attr("x", "-50%")
+            .attr("y", "-50%")
+            .attr("width", "200%")
+            .attr("height", "200%");
+
+          filter
+            .append("feDropShadow")
+            .attr("dx", 0)
+            .attr("dy", 2)
+            .attr("stdDeviation", 3)
+            .attr("flood-opacity", 0.3);
+
+          console.log("✅ Filters and gradients added");
+
+          // Create zoom behavior
+          networkGraphZoom = d3.zoom().on("zoom", (event) => {
+            g.attr("transform", event.transform);
+          });
+
+          svg.call(networkGraphZoom);
+
+          // Create main group
+          const g = svg.append("g");
+
+          console.log("🔧 Creating force simulation...");
+
+          // Create force simulation with validated links
+          networkGraphSimulation = d3
+            .forceSimulation(data.nodes)
+            .force(
+              "link",
+              d3
+                .forceLink(validLinks)
+                .id((d) => d.id)
+                .distance((d) => 100 / (d.value || 1))
+                .strength(0.5)
+            )
+            .force("charge", d3.forceManyBody().strength(-500))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .force("collision", d3.forceCollide().radius(25));
+
+          console.log("✅ Force simulation created");
+
+          // Create links
+          console.log(`📍 Creating ${validLinks.length} links...`);
+          const links = g
+            .append("g")
+            .selectAll("line")
+            .data(validLinks)
+            .enter()
+            .append("line")
+            .attr("class", "link")
+            .attr("stroke-width", (d) => Math.sqrt(d.value) * 1.5)
+            .on("mouseover", function (event, d) {
+              showLinkTooltip(event, d);
+              d3.select(this)
+                .attr("stroke-opacity", 1)
+                .attr("stroke-width", (link) => Math.sqrt(link.value) * 3);
+            })
+            .on("mouseout", function () {
+              hideLinkTooltip();
+              d3.select(this)
+                .attr("stroke-opacity", 0.6)
+                .attr("stroke-width", (link) => Math.sqrt(link.value) * 1.5);
+            });
+
+          console.log("✅ Links created");
+
+          // Create nodes
+          console.log(`🔴 Creating ${data.nodes.length} nodes...`);
+          const nodes = g
+            .append("g")
+            .selectAll("circle")
+            .data(data.nodes)
+            .enter()
+            .append("circle")
+            .attr("class", (d) => `node node-${d.type}`)
+            .attr("r", (d) => {
+              const connectionCount = validLinks.filter(
+                (l) =>
+                  (l.source.id || l.source) === d.id ||
+                  (l.target.id || l.target) === d.id
+              ).length;
+              return 8 + connectionCount * 2;
+            })
+            .attr("filter", "url(#shadow)")
+            .call(
+              d3
+                .drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended)
+            )
+            .on("mouseover", function (event, d) {
+              showNodeTooltip(event, d);
+              d3.select(this)
+                .transition()
+                .duration(200)
+                .attr("r", (node) => {
+                  const connectionCount = validLinks.filter(
+                    (l) =>
+                      (l.source.id || l.source) === node.id ||
+                      (l.target.id || l.target) === node.id
+                  ).length;
+                  return 12 + connectionCount * 2;
+                });
+              links.style("stroke-opacity", (link) => {
+                return (link.source.id || link.source) === d.id ||
+                  (link.target.id || link.target) === d.id
+                  ? 1
+                  : 0.2;
+              });
+            })
+            .on("mouseout", function (event, d) {
+              hideNodeTooltip();
+              d3.select(this)
+                .transition()
+                .duration(200)
+                .attr("r", (node) => {
+                  const connectionCount = validLinks.filter(
+                    (l) =>
+                      (l.source.id || l.source) === node.id ||
+                      (l.target.id || l.target) === node.id
+                  ).length;
+                  return 8 + connectionCount * 2;
+                });
+              links.style("stroke-opacity", 0.6);
+            });
+
+          console.log("✅ Nodes created");
+
+          // Add labels
+          console.log("📝 Adding labels...");
+          const labels = g
+            .append("g")
+            .selectAll("text")
+            .data(data.nodes)
+            .enter()
+            .append("text")
+            .attr("class", "node-label")
+            .attr("text-anchor", "middle")
+            .attr("dy", ".3em")
+            .text((d) =>
+              d.id.length > 12 ? d.id.substring(0, 10) + ".." : d.id
+            )
+            .style("font-size", (d) => {
+              const connectionCount = validLinks.filter(
+                (l) =>
+                  (l.source.id || l.source) === d.id ||
+                  (l.target.id || l.target) === d.id
+              ).length;
+              return 10 + connectionCount * 0.5 + "px";
+            });
+
+          console.log("✅ Labels added");
+
+          // Update positions on each tick
+          let tickCount = 0;
+          networkGraphSimulation.on("tick", () => {
+            tickCount++;
+            if (tickCount % 50 === 0) {
+              console.log(`⏱️ Simulation tick ${tickCount}`);
+            }
+
+            links
+              .attr("x1", (d) => d.source.x)
+              .attr("y1", (d) => d.source.y)
+              .attr("x2", (d) => d.target.x)
+              .attr("y2", (d) => d.target.y);
+
+            nodes.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
+            labels.attr("x", (d) => d.x).attr("y", (d) => d.y);
+          });
+
+          console.log("🎉 Graph rendering complete!");
+
+          // Drag functions
+          function dragstarted(event, d) {
+            if (!event.active)
+              networkGraphSimulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+          }
+
+          function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+          }
+
+          function dragended(event, d) {
+            if (!event.active) networkGraphSimulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+          }
+        } catch (error) {
+          console.error("❌ Error rendering graph:", error);
+          document.getElementById("networkGraph").innerHTML =
+      function updateGraphStatistics(data) {
+        const serviceCount = data.nodes.filter(
+          (n) => n.type === "service"
+        ).length;
+        const ipCount = data.nodes.filter((n) => n.type === "ip").length;
+        const userCount = data.nodes.filter((n) => n.type === "user").length;
+
+        document.getElementById("graphServiceCount").textContent = serviceCount;
+        document.getElementById("graphIpCount").textContent = ipCount;
+        document.getElementById("graphUserCount").textContent = userCount;
+        document.getElementById("graphConnectionCount").textContent =
+          data.links.length;
+      }
+
+      function showNodeTooltip(event, node) {
+        const connectionCount = document.querySelectorAll(".node").length; // Approximate
+        const tooltip = document.createElement("div");
+        tooltip.id = "nodeTooltip";
+        tooltip.className = `tooltip ${node.type}-tooltip`;
+        tooltip.innerHTML = `
+          <div class="tooltip-header">${node.id}</div>
+          <div class="tooltip-content">
+            <strong>Type:</strong> ${node.type.toUpperCase()}<br>
+            <strong>Label:</strong> ${node.label || node.id}<br>
+            <strong>Node ID:</strong> ${node.id}
+          </div>
+        `;
+        tooltip.style.left = event.pageX + 10 + "px";
+        tooltip.style.top = event.pageY + 10 + "px";
+        document.body.appendChild(tooltip);
+      }
+
+      function hideNodeTooltip() {
+        const tooltip = document.getElementById("nodeTooltip");
+        if (tooltip) tooltip.remove();
+      }
+
+      function showLinkTooltip(event, link) {
+        const source = link.source.id || link.source;
+        const target = link.target.id || link.target;
+        const tooltip = document.createElement("div");
+        tooltip.id = "linkTooltip";
+        tooltip.className = "tooltip";
+        tooltip.innerHTML = `
+          <div class="tooltip-header">Connection</div>
+          <div class="tooltip-content">
+            <strong>From:</strong> ${source}<br>
+            <strong>To:</strong> ${target}<br>
+            <strong>Strength:</strong> ${link.value}
+          </div>
+        `;
+        tooltip.style.left = event.pageX + 10 + "px";
+        tooltip.style.top = event.pageY + 10 + "px";
+        document.body.appendChild(tooltip);
+      }
+
+      function hideLinkTooltip() {
+        const tooltip = document.getElementById("linkTooltip");
+        if (tooltip) tooltip.remove();
+      }
+
+      function resetGraphZoom() {
+        if (networkGraphZoom) {
+          d3.select("#networkGraph svg")
+            .transition()
+            .duration(750)
+            .call(
+              networkGraphZoom.transform,
+              d3.zoomIdentity.translate(0, 0).scale(1)
+            );
+        }
+      }
+
+      function pauseGraphSimulation() {
+        if (networkGraphSimulation) {
+          networkGraphPaused = true;
+          networkGraphSimulation.stop();
+        }
+      }
+
+      function resumeGraphSimulation() {
+        if (networkGraphSimulation) {
+          networkGraphPaused = false;
+          networkGraphSimulation.restart();
+        }
+      }
+
+      function zoomGraphIn() {
+        if (networkGraphZoom) {
+          d3.select("#networkGraph svg")
+            .transition()
+            .duration(300)
+            .call(networkGraphZoom.scaleBy, 1.3);
+        }
+      }
+
+      function zoomGraphOut() {
+        if (networkGraphZoom) {
+          d3.select("#networkGraph svg")
+            .transition()
+            .duration(300)
+            .call(networkGraphZoom.scaleBy, 0.7);
+        }
+      }
+
       // Fetch initial data
       function fetchInitialData() {
         fetch("/api/stats")
@@ -2553,6 +3277,7 @@
           });
 
         updateTimelineChart();
+        loadNetworkGraph();
         updateServicePieChart();
         updateLastUpdated();
       }
@@ -2773,9 +3498,16 @@
             document.getElementById("infoAnomalyRate").textContent =
               (data.anomaly_rate * 100).toFixed(2) + "%";
             document.getElementById("infoProcessing").textContent =
-              data.is_processing ? "Yes" : "No";
-            document.getElementById("infoLastAnomaly").textContent =
-              data.last_anomaly || "No anomalies yet";
+              data.current_processing ? "🔄 Yes" : "✓ No";
+
+            if (data.last_anomaly) {
+              document.getElementById("infoLastAnomaly").innerHTML = `
+                <strong>${data.last_anomaly.service}</strong><br>
+                Score: ${data.last_anomaly.anomaly_score.toFixed(3)}<br>
+                Time: ${data.last_anomaly.timestamp}<br>
+                IP: ${data.last_anomaly.ip_address}
+              `;
+            }
           })
           .catch((error) => {
             console.error("Error fetching system info:", error);
@@ -2783,123 +3515,248 @@
       }
 
       function formatUptime(seconds) {
-        const s = Math.floor(seconds % 60);
-        const m = Math.floor((seconds / 60) % 60);
-        const h = Math.floor((seconds / 3600) % 24);
-        const d = Math.floor(seconds / 86400);
-        const parts = [];
-        if (d) parts.push(`${d}d`);
-        if (h) parts.push(`${h}h`);
-        if (m) parts.push(`${m}m`);
-        parts.push(`${s}s`);
-        return parts.join(" ");
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        return `${hours}h ${minutes}m ${secs}s`;
       }
 
-      // Notification helpers
-      function addNotification(anomaly) {
-        const panel = document.getElementById("notificationPanel");
-        const content = document.getElementById("notificationContent");
-        const badge = document.getElementById("notificationBadge");
+      // System Control Functions
+      function toggleSystem() {
+        const btn = document.getElementById("systemToggleBtn");
+        const isRunning = btn.textContent.includes("Stop");
 
-        // Remove empty state
-        const empty = content.querySelector(".notification-empty");
-        if (empty) empty.remove();
+        const endpoint = isRunning ? "/api/system/stop" : "/api/system/start";
 
-        const item = document.createElement("div");
-        item.className = "notification-item";
-        item.innerHTML = `
-          <div class="notification-item-icon"><i class="fas fa-exclamation-circle"></i></div>
-          <div class="notification-item-content">
-            <div class="notification-item-title">${anomaly.service || "Unknown Service"}</div>
-            <div class="notification-item-message">${anomaly.message || "No message"}</div>
-            <div class="notification-item-details">
-              <span>Score: ${(anomaly.anomaly_score || 0).toFixed(3)}</span>
-              <span>IP: ${anomaly.ip_address || "N/A"}</span>
-              <span>${anomaly.timestamp || ""}</span>
-            </div>
-          </div>
-          <button class="notification-item-close" onclick="this.parentElement.remove(); updateBadge()">
-            &times;
-          </button>
-        `;
-        content.prepend(item);
-        updateBadge();
-        panel.classList.add("active");
+        fetch(endpoint, { method: "POST" })
+          .then((response) => response.json())
+          .then((data) => {
+            updateSystemStatus();
+          })
+          .catch((error) => {
+            console.error("Error toggling system:", error);
+          });
       }
 
-      function updateBadge() {
-        const badge = document.getElementById("notificationBadge");
-        const content = document.getElementById("notificationContent");
-        const count = content.querySelectorAll(".notification-item").length;
-        badge.textContent = count;
+      function updateSystemStatus() {
+        fetch("/api/system_status")
+          .then((response) => response.json())
+          .then((status) => {
+            // Status elements were removed from navbar
+            // This function now just logs the status
+            console.log("System status updated:", status);
+          })
+          .catch((error) => {
+            console.error("Error updating system status:", error);
+          });
       }
 
+      // Socket event for system status updates
+      socket.on("system_status_update", (status) => {
+        updateSystemStatus();
+      });
+
+      // Update system status on page load
+      updateSystemStatus();
+
+      // Auto-refresh system status every 5 seconds
+      setInterval(updateSystemStatus, 5000);
+
+      // Close modals when clicking outside
+      window.onclick = function (event) {
+        const uploadModal = document.getElementById("uploadModal");
+        const processModal = document.getElementById("processModal");
+        const logsModal = document.getElementById("logsModal");
+        const systemInfoModal = document.getElementById("systemInfoModal");
+
+        if (event.target == uploadModal) {
+          uploadModal.style.display = "none";
+        }
+        if (event.target == processModal) {
+          processModal.style.display = "none";
+        }
+        if (event.target == logsModal) {
+          logsModal.style.display = "none";
+        }
+        if (event.target == systemInfoModal) {
+          systemInfoModal.style.display = "none";
+        }
+      };
+
+      // Notification management
+      let notifications = [];
+      const MAX_NOTIFICATIONS = 50;
+
+      // Toggle notification panel
       function toggleNotificationPanel() {
         const panel = document.getElementById("notificationPanel");
         panel.classList.toggle("active");
       }
 
-      function clearAllNotifications() {
-        const content = document.getElementById("notificationContent");
-        content.innerHTML = `
-          <div class="notification-empty">
-            <i class="fas fa-inbox"></i>
-            <p>No alerts yet</p>
-          </div>
-        `;
-        updateBadge();
-      }
+      // Close notification panel when clicking outside
+      document.addEventListener("click", (event) => {
+        const notificationPanel = document.getElementById("notificationPanel");
+        const notificationIcon = document.querySelector(".notification-icon");
 
-      // Tab switching
-      function switchMainTab(tab) {
-        document
-          .querySelectorAll(".main-tab-content")
-          .forEach((el) => el.classList.remove("active"));
-        document
-          .querySelectorAll(".aside-navbar .nav-item")
-          .forEach((el) => el.classList.remove("active"));
-
-        if (tab === "dashboard") {
-          document.getElementById("dashboardTab").classList.add("active");
-          document
-            .querySelector('.aside-navbar .nav-item[data-tab="dashboard"]')
-            .classList.add("active");
-        } else if (tab === "dataset") {
-          document.getElementById("datasetTab").classList.add("active");
-          document
-            .querySelector('.aside-navbar .nav-item[data-tab="dataset"]')
-            .classList.add("active");
+        if (
+          !notificationPanel.contains(event.target) &&
+          !notificationIcon.contains(event.target)
+        ) {
+          notificationPanel.classList.remove("active");
         }
+      });
+
+      // Add notification to the panel
+      function addNotification(anomaly) {
+        const notification = {
+          id: Date.now(),
+          timestamp: new Date(),
+          service: anomaly.service || "Unknown",
+          score: anomaly.anomaly_score || 0,
+          ip: anomaly.ip_address || "N/A",
+          message: anomaly.message || "Anomaly detected",
+        };
+
+        notifications.unshift(notification);
+
+        // Keep only max notifications
+        if (notifications.length > MAX_NOTIFICATIONS) {
+          notifications.pop();
+        }
+
+        updateNotificationBadge();
+        renderNotifications();
       }
 
-      function switchAnalysisTab(tab) {
-        document
-          .querySelectorAll(".analysis-tab-content")
-          .forEach((el) => el.classList.remove("active"));
-        document
-          .querySelectorAll(".analysis-tab")
-          .forEach((el) => el.classList.remove("active"));
+      // Update notification badge count
+      function updateNotificationBadge() {
+        const badge = document.getElementById("notificationBadge");
+        const count = notifications.length;
+        badge.textContent = count > 99 ? "99+" : count;
+        badge.style.display = count > 0 ? "flex" : "none";
+      }
 
-        if (tab === "upload") {
-          document.getElementById("uploadTab").classList.add("active");
-          document
-            .querySelector('.analysis-tab[data-tab="upload"]')
-            .classList.add("active");
-        } else if (tab === "results") {
-          document.getElementById("resultsTab").classList.add("active");
-          document
-            .querySelector('.analysis-tab[data-tab="results"]')
-            .classList.add("active");
-        } else if (tab === "viewer") {
-          document.getElementById("viewerTab").classList.add("active");
-          document
-            .querySelector('.analysis-tab[data-tab="viewer"]')
-            .classList.add("active");
-        } else if (tab === "alerts") {
-          document.getElementById("alertsTab").classList.add("active");
-          document
-            .querySelector('.analysis-tab[data-tab="alerts"]')
-            .classList.add("active");
+      // Render notifications in the panel
+      function renderNotifications() {
+        const content = document.getElementById("notificationContent");
+
+        if (notifications.length === 0) {
+          content.innerHTML = `
+            <div class="notification-empty">
+              <i class="fas fa-inbox"></i>
+              <p>No alerts yet</p>
+            </div>
+          `;
+          return;
+        }
+
+        content.innerHTML = notifications
+          .map(
+            (notif) => `
+            <div class="notification-item">
+              <div class="notification-item-icon">
+                <i class="fas fa-exclamation-circle"></i>
+              </div>
+              <div class="notification-item-content">
+                <div class="notification-item-title">
+                  Critical Anomaly - ${notif.service}
+                </div>
+                <div class="notification-item-message">
+                  ${notif.message}
+                </div>
+                <div class="notification-item-details">
+                  <span><strong>Score:</strong> ${notif.score.toFixed(3)}</span>
+                  <span><strong>IP:</strong> ${notif.ip}</span>
+                </div>
+              </div>
+              <div class="notification-item-time">
+                ${formatNotificationTime(notif.timestamp)}
+              </div>
+              <button class="notification-item-close" onclick="removeNotification(${
+                notif.id
+              })">
+                ×
+              </button>
+            </div>
+          `
+          )
+          .join("");
+      }
+
+      // Format notification time
+      function formatNotificationTime(date) {
+        const now = new Date();
+        const diff = now - date;
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(diff / 86400000);
+
+        if (minutes < 1) return "Just now";
+        if (minutes < 60) return `${minutes}m ago`;
+        if (hours < 24) return `${hours}h ago`;
+        return `${days}d ago`;
+      }
+
+      // Remove individual notification
+      function removeNotification(id) {
+        notifications = notifications.filter((n) => n.id !== id);
+        updateNotificationBadge();
+        renderNotifications();
+      }
+
+      // Clear all notifications
+      function clearAllNotifications() {
+        notifications = [];
+        updateNotificationBadge();
+        renderNotifications();
+      }
+
+      // Update showAlert to also add to notifications
+      const originalShowAlert = showAlert;
+      showAlert = function (anomaly) {
+        originalShowAlert(anomaly);
+        addNotification(anomaly);
+      };
+
+      // Initialize notification badge
+      updateNotificationBadge();
+
+      // ==========================================
+      // MAIN TAB SWITCHING FUNCTIONS
+      // ==========================================
+
+      function switchMainTab(tabName) {
+        // Remove active class from all nav tabs
+        document.querySelectorAll(".nav-tab").forEach((tab) => {
+          tab.classList.remove("active");
+        });
+
+        // Remove active class from all main content sections
+        document.querySelectorAll(".main-tab-content").forEach((content) => {
+          content.classList.remove("active");
+        });
+
+        // Add active class to selected nav tab
+        document
+          .querySelector(`[data-tab="${tabName}"]`)
+          .classList.add("active");
+
+        // Add active class to selected content section
+        document.getElementById(`${tabName}Tab`).classList.add("active");
+
+        // Initialize content based on tab
+        if (tabName === "dataset") {
+          // Initialize dataset analysis when switching to that tab
+          loadRecentAnalyses();
+
+          // Update threshold display
+          const thresholdSlider = document.getElementById("anomalyThreshold");
+          const thresholdValue = document.getElementById("thresholdValue");
+          if (thresholdSlider && thresholdValue) {
+            thresholdSlider.addEventListener("input", function () {
+              thresholdValue.textContent = this.value;
+            });
+          }
         }
       }
     </script>
