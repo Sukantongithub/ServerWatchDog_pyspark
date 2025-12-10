@@ -3118,9 +3118,9 @@
         // Fetch both alerts and statistics to get accurate counts
         Promise.all([
           fetch(`/api/uploaded/alerts/${fileId}?page=1&per_page=50`),
-          fetch(`/api/uploaded/statistics/${fileId}`)
+          fetch(`/api/uploaded/statistics/${fileId}`),
         ])
-          .then(([alertsResponse, statsResponse]) => 
+          .then(([alertsResponse, statsResponse]) =>
             Promise.all([alertsResponse.json(), statsResponse.json()])
           )
           .then(([alertsData, statsData]) => {
@@ -3135,7 +3135,7 @@
               CRITICAL: stats.critical_alerts || 0,
               HIGH: stats.high_risk_alerts || 0,
               MEDIUM: stats.medium_risk_alerts || 0,
-              LOW: stats.low_risk_alerts || 0
+              LOW: stats.low_risk_alerts || 0,
             };
 
             // Create comprehensive alerts modal
@@ -3269,8 +3269,8 @@
             `;
 
             // Append modal to body
-            document.body.insertAdjacentHTML('beforeend', modalHTML);
-            
+            document.body.insertAdjacentHTML("beforeend", modalHTML);
+
             // Store file ID for later use
             window.currentAlertFileId = fileId;
 
@@ -3301,8 +3301,12 @@
         Promise.all([
           fetch(`/api/uploaded/results/${fileId}`).then((r) => r.json()),
           fetch(`/api/uploaded/statistics/${fileId}`).then((r) => r.json()),
-          fetch(`/api/uploaded/anomalies/${fileId}?page=1&per_page=30`).then((r) => r.json()),
-          fetch(`/api/uploaded/alerts/${fileId}?page=1&per_page=30`).then((r) => r.json())
+          fetch(`/api/uploaded/anomalies/${fileId}?page=1&per_page=30`).then(
+            (r) => r.json()
+          ),
+          fetch(`/api/uploaded/alerts/${fileId}?page=1&per_page=30`).then((r) =>
+            r.json()
+          ),
         ])
           .then(([resultsData, statsData, anomaliesData, alertsData]) => {
             const results = resultsData.results;
@@ -3312,16 +3316,35 @@
             const alerts = alertsData.alerts || [];
 
             const totalAnomalies = stats.anomalies_found || 0;
-            const totalAlerts = (stats.critical_alerts || 0) + (stats.high_risk_alerts || 0) + (stats.medium_risk_alerts || 0) + (stats.low_risk_alerts || 0);
-            const criticalRate = stats.total_logs > 0 ? ((stats.critical_alerts || 0) / stats.total_logs * 100).toFixed(2) : 0;
-            
+            const totalAlerts =
+              (stats.critical_alerts || 0) +
+              (stats.high_risk_alerts || 0) +
+              (stats.medium_risk_alerts || 0) +
+              (stats.low_risk_alerts || 0);
+            const criticalRate =
+              stats.total_logs > 0
+                ? (
+                    ((stats.critical_alerts || 0) / stats.total_logs) *
+                    100
+                  ).toFixed(2)
+                : 0;
+
             // Determine risk level
             let riskLevel = "LOW";
-            if (stats.critical_alerts > 10 || parseFloat(summary.anomaly_rate) > 20) {
+            if (
+              stats.critical_alerts > 10 ||
+              parseFloat(summary.anomaly_rate) > 20
+            ) {
               riskLevel = "CRITICAL";
-            } else if (stats.critical_alerts > 5 || parseFloat(summary.anomaly_rate) > 10) {
+            } else if (
+              stats.critical_alerts > 5 ||
+              parseFloat(summary.anomaly_rate) > 10
+            ) {
               riskLevel = "HIGH";
-            } else if (stats.critical_alerts > 0 || parseFloat(summary.anomaly_rate) > 5) {
+            } else if (
+              stats.critical_alerts > 0 ||
+              parseFloat(summary.anomaly_rate) > 5
+            ) {
               riskLevel = "MEDIUM";
             }
 
@@ -3339,7 +3362,9 @@ REPORT INFORMATION
 
 Report Generated:        ${timestamp}
 Analysis File:           ${results.filename}
-Analysis Completed:      ${new Date(results.analysis_completed).toLocaleString()}
+Analysis Completed:      ${new Date(
+              results.analysis_completed
+            ).toLocaleString()}
 Analysis Method:         ${stats.analysis_method || "Apache Spark MLlib"}
 File ID:                 ${results.file_id}
 
@@ -3374,80 +3399,185 @@ Overall Risk Level:      ${riskLevel}
 Anomaly Rate:            ${summary.anomaly_rate}%
 Critical Alert Rate:     ${criticalRate}%
 
-${criticalRate > 10 ? '⚠️  WARNING: High number of critical alerts detected! Immediate action required.\n' : ''}${parseFloat(summary.anomaly_rate) > 15 ? '⚠️  WARNING: High anomaly rate detected! System may be under attack or experiencing issues.\n' : ''}${stats.suspicious_ips_found && stats.suspicious_ips_found.length > 10 ? '⚠️  WARNING: Large number of suspicious IPs detected!\n' : ''}
+${
+  criticalRate > 10
+    ? "⚠️  WARNING: High number of critical alerts detected! Immediate action required.\n"
+    : ""
+}${
+              parseFloat(summary.anomaly_rate) > 15
+                ? "⚠️  WARNING: High anomaly rate detected! System may be under attack or experiencing issues.\n"
+                : ""
+            }${
+              stats.suspicious_ips_found &&
+              stats.suspicious_ips_found.length > 10
+                ? "⚠️  WARNING: Large number of suspicious IPs detected!\n"
+                : ""
+            }
 ═══════════════════════════════════════════════════════════════════════════════
 SERVICES ANALYZED
 ═══════════════════════════════════════════════════════════════════════════════
 
-Total Services:          ${stats.services_analyzed ? stats.services_analyzed.length : 0}
+Total Services:          ${
+              stats.services_analyzed ? stats.services_analyzed.length : 0
+            }
 
-${stats.services_analyzed && stats.services_analyzed.length > 0 ? stats.services_analyzed.map((s, i) => `${String(i + 1).padStart(3, ' ')}. ${s}`).join('\n') : 'No service data available'}
+${
+  stats.services_analyzed && stats.services_analyzed.length > 0
+    ? stats.services_analyzed
+        .map((s, i) => `${String(i + 1).padStart(3, " ")}. ${s}`)
+        .join("\n")
+    : "No service data available"
+}
 
 ═══════════════════════════════════════════════════════════════════════════════
 SUSPICIOUS IP ADDRESSES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Total Suspicious IPs:    ${stats.suspicious_ips_found ? stats.suspicious_ips_found.length : 0}
+Total Suspicious IPs:    ${
+              stats.suspicious_ips_found ? stats.suspicious_ips_found.length : 0
+            }
 
-${stats.suspicious_ips_found && stats.suspicious_ips_found.length > 0 ? stats.suspicious_ips_found.slice(0, 20).map((ip, i) => `${String(i + 1).padStart(3, ' ')}. ${ip}`).join('\n') : 'No suspicious IPs detected'}
+${
+  stats.suspicious_ips_found && stats.suspicious_ips_found.length > 0
+    ? stats.suspicious_ips_found
+        .slice(0, 20)
+        .map((ip, i) => `${String(i + 1).padStart(3, " ")}. ${ip}`)
+        .join("\n")
+    : "No suspicious IPs detected"
+}
 
-${stats.suspicious_ips_found && stats.suspicious_ips_found.length > 20 ? `\n... and ${stats.suspicious_ips_found.length - 20} more suspicious IPs` : ''}
+${
+  stats.suspicious_ips_found && stats.suspicious_ips_found.length > 20
+    ? `\n... and ${stats.suspicious_ips_found.length - 20} more suspicious IPs`
+    : ""
+}
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERROR PATTERNS DETECTED
 ═══════════════════════════════════════════════════════════════════════════════
 
-${stats.error_patterns && Object.keys(stats.error_patterns).length > 0 ? Object.entries(stats.error_patterns).slice(0, 15).map(([pattern, count], i) => `${String(i + 1).padStart(3, ' ')}. [${String(count).padStart(5, ' ')} occurrences] ${pattern}`).join('\n') : 'No significant error patterns detected'}
+${
+  stats.error_patterns && Object.keys(stats.error_patterns).length > 0
+    ? Object.entries(stats.error_patterns)
+        .slice(0, 15)
+        .map(
+          ([pattern, count], i) =>
+            `${String(i + 1).padStart(3, " ")}. [${String(count).padStart(
+              5,
+              " "
+            )} occurrences] ${pattern}`
+        )
+        .join("\n")
+    : "No significant error patterns detected"
+}
 
 ═══════════════════════════════════════════════════════════════════════════════
 TOP 30 CRITICAL ANOMALIES
 ═══════════════════════════════════════════════════════════════════════════════
 
-${anomalies.length > 0 ? anomalies.slice(0, 30).map((a, i) => `
-${String(i + 1).padStart(3, ' ')}. ANOMALY #${a.line_number || 'N/A'}
+${
+  anomalies.length > 0
+    ? anomalies
+        .slice(0, 30)
+        .map(
+          (a, i) => `
+${String(i + 1).padStart(3, " ")}. ANOMALY #${a.line_number || "N/A"}
      Severity Score:     ${(a.anomaly_score || 0).toFixed(4)}
-     Timestamp:          ${a.timestamp || 'N/A'}
-     Service:            ${a.service || 'unknown'}
-     Level:              ${a.level || 'INFO'}
-     IP Address:         ${a.ip_address || 'N/A'}
-     User:               ${a.user || 'N/A'}
-     Message:            ${a.message ? a.message.substring(0, 200) : 'No message'}${a.message && a.message.length > 200 ? '...' : ''}
-     ${'-'.repeat(77)}`).join('\n') : 'No anomalies found'}
+     Timestamp:          ${a.timestamp || "N/A"}
+     Service:            ${a.service || "unknown"}
+     Level:              ${a.level || "INFO"}
+     IP Address:         ${a.ip_address || "N/A"}
+     User:               ${a.user || "N/A"}
+     Message:            ${
+       a.message ? a.message.substring(0, 200) : "No message"
+     }${a.message && a.message.length > 200 ? "..." : ""}
+     ${"-".repeat(77)}`
+        )
+        .join("\n")
+    : "No anomalies found"
+}
 
 ═══════════════════════════════════════════════════════════════════════════════
 TOP 30 SECURITY ALERTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-${alerts.length > 0 ? alerts.slice(0, 30).map((a, i) => `
-${String(i + 1).padStart(3, ' ')}. ALERT: ${a.message}
+${
+  alerts.length > 0
+    ? alerts
+        .slice(0, 30)
+        .map(
+          (a, i) => `
+${String(i + 1).padStart(3, " ")}. ALERT: ${a.message}
      Severity:           ${a.severity}
-     Priority:           ${a.priority || 'N/A'}
+     Priority:           ${a.priority || "N/A"}
      Anomaly Score:      ${(a.anomaly_score || 0).toFixed(4)}
-     Timestamp:          ${a.timestamp || 'N/A'}
-     Service:            ${a.service || 'unknown'}
-     IP Address:         ${a.ip_address || 'N/A'}
-     Line Number:        ${a.line_number || 'N/A'}
-     ${'-'.repeat(77)}`).join('\n') : 'No alerts generated'}
+     Timestamp:          ${a.timestamp || "N/A"}
+     Service:            ${a.service || "unknown"}
+     IP Address:         ${a.ip_address || "N/A"}
+     Line Number:        ${a.line_number || "N/A"}
+     ${"-".repeat(77)}`
+        )
+        .join("\n")
+    : "No alerts generated"
+}
 
 ═══════════════════════════════════════════════════════════════════════════════
 SERVICE DISTRIBUTION
 ═══════════════════════════════════════════════════════════════════════════════
 
-${stats.service_distribution && Object.keys(stats.service_distribution).length > 0 ? Object.entries(stats.service_distribution).sort((a, b) => b[1] - a[1]).map(([service, count], i) => `${String(i + 1).padStart(3, ' ')}. ${service.padEnd(30, ' ')} ${String(count).padStart(8, ' ')} logs`).join('\n') : 'No service distribution data available'}
+${
+  stats.service_distribution &&
+  Object.keys(stats.service_distribution).length > 0
+    ? Object.entries(stats.service_distribution)
+        .sort((a, b) => b[1] - a[1])
+        .map(
+          ([service, count], i) =>
+            `${String(i + 1).padStart(3, " ")}. ${service.padEnd(
+              30,
+              " "
+            )} ${String(count).padStart(8, " ")} logs`
+        )
+        .join("\n")
+    : "No service distribution data available"
+}
 
 ═══════════════════════════════════════════════════════════════════════════════
 TIME RANGE ANALYSIS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Analysis Start:          ${stats.time_range?.start || 'N/A'}
-Analysis End:            ${stats.time_range?.end || 'N/A'}
-Time Span:               ${stats.time_range?.duration || 'N/A'}
+Analysis Start:          ${stats.time_range?.start || "N/A"}
+Analysis End:            ${stats.time_range?.end || "N/A"}
+Time Span:               ${stats.time_range?.duration || "N/A"}
 
 ═══════════════════════════════════════════════════════════════════════════════
 RECOMMENDATIONS & ACTION ITEMS
 ═══════════════════════════════════════════════════════════════════════════════
 
-${stats.critical_alerts > 0 ? `🔴 CRITICAL: ${stats.critical_alerts} critical alerts require immediate attention!\n     └─ Review all critical alerts and take corrective action\n\n` : ''}${criticalRate > 10 ? `🔴 CRITICAL: High critical alert rate (${criticalRate}%)\n     └─ Investigate potential security breach or system failure\n\n` : ''}${parseFloat(summary.anomaly_rate) > 15 ? `⚠️  HIGH: Anomaly rate is ${summary.anomaly_rate}% (threshold: 15%)\n     └─ Review system logs and investigate unusual patterns\n\n` : ''}${stats.suspicious_ips_found && stats.suspicious_ips_found.length > 10 ? `⚠️  HIGH: ${stats.suspicious_ips_found.length} suspicious IPs detected\n     └─ Review IP access patterns and consider blocking suspicious sources\n\n` : ''}${stats.error_patterns && Object.keys(stats.error_patterns).length > 5 ? `⚠️  MEDIUM: ${Object.keys(stats.error_patterns).length} distinct error patterns found\n     └─ Review recurring errors and fix root causes\n\n` : ''}
+${
+  stats.critical_alerts > 0
+    ? `🔴 CRITICAL: ${stats.critical_alerts} critical alerts require immediate attention!\n     └─ Review all critical alerts and take corrective action\n\n`
+    : ""
+}${
+              criticalRate > 10
+                ? `🔴 CRITICAL: High critical alert rate (${criticalRate}%)\n     └─ Investigate potential security breach or system failure\n\n`
+                : ""
+            }${
+              parseFloat(summary.anomaly_rate) > 15
+                ? `⚠️  HIGH: Anomaly rate is ${summary.anomaly_rate}% (threshold: 15%)\n     └─ Review system logs and investigate unusual patterns\n\n`
+                : ""
+            }${
+              stats.suspicious_ips_found &&
+              stats.suspicious_ips_found.length > 10
+                ? `⚠️  HIGH: ${stats.suspicious_ips_found.length} suspicious IPs detected\n     └─ Review IP access patterns and consider blocking suspicious sources\n\n`
+                : ""
+            }${
+              stats.error_patterns &&
+              Object.keys(stats.error_patterns).length > 5
+                ? `⚠️  MEDIUM: ${
+                    Object.keys(stats.error_patterns).length
+                  } distinct error patterns found\n     └─ Review recurring errors and fix root causes\n\n`
+                : ""
+            }
 ✅ STANDARD ACTIONS:
    ├─ Continue monitoring system for unusual activity
    ├─ Review all high and critical severity anomalies
@@ -3461,10 +3591,12 @@ TECHNICAL DETAILS
 ═══════════════════════════════════════════════════════════════════════════════
 
 Analysis Configuration:
-   ├─ Method:                      ${stats.analysis_method || 'Spark MLlib'}
-   ├─ Threshold:                   ${stats.threshold || 'Default'}
-   ├─ Features Used:               ${stats.features_used || 'Standard feature set'}
-   ├─ Model Version:               ${stats.model_version || 'v1.0'}
+   ├─ Method:                      ${stats.analysis_method || "Spark MLlib"}
+   ├─ Threshold:                   ${stats.threshold || "Default"}
+   ├─ Features Used:               ${
+     stats.features_used || "Standard feature set"
+   }
+   ├─ Model Version:               ${stats.model_version || "v1.0"}
    └─ Spark UI:                    ${results.spark_job_url}
 
 System Information:
@@ -3474,10 +3606,14 @@ System Information:
    └─ Alert Generation:            Rule-based + ML Scoring
 
 Performance Metrics:
-   ├─ Logs Processed per Second:  ${stats.total_logs && stats.processing_time ? Math.round(stats.total_logs / stats.processing_time) : 'N/A'}
+   ├─ Logs Processed per Second:  ${
+     stats.total_logs && stats.processing_time
+       ? Math.round(stats.total_logs / stats.processing_time)
+       : "N/A"
+   }
    ├─ Total Processing Time:       ${stats.processing_time}s
-   ├─ Memory Usage:                ${stats.memory_usage || 'N/A'}
-   └─ CPU Utilization:             ${stats.cpu_usage || 'N/A'}
+   ├─ Memory Usage:                ${stats.memory_usage || "N/A"}
+   └─ CPU Utilization:             ${stats.cpu_usage || "N/A"}
 
 ═══════════════════════════════════════════════════════════════════════════════
 SUMMARY STATISTICS
@@ -3488,9 +3624,17 @@ Total Anomalies:         ${totalAnomalies.toLocaleString()}
 Total Alerts:            ${totalAlerts}
 Anomaly Rate:            ${summary.anomaly_rate}%
 Critical Rate:           ${summary.critical_rate}%
-Services Analyzed:       ${stats.services_analyzed ? stats.services_analyzed.length : 0}
-Suspicious IPs:          ${stats.suspicious_ips_found ? stats.suspicious_ips_found.length : 0}
-Error Patterns:          ${stats.error_patterns ? Object.keys(stats.error_patterns).length : 0}
+Services Analyzed:       ${
+              stats.services_analyzed ? stats.services_analyzed.length : 0
+            }
+Suspicious IPs:          ${
+              stats.suspicious_ips_found ? stats.suspicious_ips_found.length : 0
+            }
+Error Patterns:          ${
+              stats.error_patterns
+                ? Object.keys(stats.error_patterns).length
+                : 0
+            }
 Processing Time:         ${stats.processing_time}s
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -3516,11 +3660,13 @@ END OF REPORT
 `;
 
             // Create and download the TXT file
-            const blob = new Blob([report], { type: 'text/plain' });
+            const blob = new Blob([report], { type: "text/plain" });
             const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
+            const a = document.createElement("a");
             a.href = url;
-            a.download = `analysis_report_${fileId}_${new Date().toISOString().split('T')[0]}.txt`;
+            a.download = `analysis_report_${fileId}_${
+              new Date().toISOString().split("T")[0]
+            }.txt`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
