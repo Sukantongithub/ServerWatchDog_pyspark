@@ -182,8 +182,12 @@ class GraphAnalyzer:
             node_ids = set()
             
             for row in vertices_list:
-                node_id = str(row.id) if row.id else "unknown"
+                node_id = str(row.id) if row.id else None
                 node_type = str(row.type) if row.type else "unknown"
+                
+                # Skip null/None/empty nodes
+                if not node_id or node_id == "None" or node_id.strip() == "":
+                    continue
                 
                 nodes.append({
                     "id": node_id,
@@ -194,18 +198,34 @@ class GraphAnalyzer:
             
             # Create links with improved structure
             links = []
+            skipped_links = 0
+            
             for row in edges_list:
                 src = str(row.src) if row.src else None
                 dst = str(row.dst) if row.dst else None
                 weight = int(row.weight) if row.weight else 1
                 
-                # Only add links where both nodes exist
-                if src and dst and src in node_ids and dst in node_ids:
+                # Skip if source or destination is None/empty
+                if not src or not dst or src == "None" or dst == "None":
+                    skipped_links += 1
+                    continue
+                
+                src = src.strip()
+                dst = dst.strip()
+                
+                # Only add links where both nodes exist in our node set
+                if src in node_ids and dst in node_ids:
                     links.append({
                         "source": src,
                         "target": dst,
                         "value": max(weight, 1)
                     })
+                else:
+                    skipped_links += 1
+                    if src not in node_ids:
+                        print(f"⚠️  Skipping link: source node '{src}' not found in nodes")
+                    if dst not in node_ids:
+                        print(f"⚠️  Skipping link: target node '{dst}' not found in nodes")
             
             graph_data = {
                 "nodes": nodes[:150],  # Increased limit for visualization
@@ -222,6 +242,8 @@ class GraphAnalyzer:
             print(f"✅ Graph data exported to {output_path}")
             print(f"   Nodes: {len(graph_data['nodes'])}")
             print(f"   Links: {len(graph_data['links'])}")
+            if skipped_links > 0:
+                print(f"   Skipped {skipped_links} invalid links")
             return graph_data
         
         except Exception as e:

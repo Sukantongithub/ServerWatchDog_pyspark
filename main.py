@@ -109,11 +109,14 @@ class AnomalyDetectionSystem:
         print("Starting log processing loop...")
         
         last_position = 0
+        consecutive_errors = 0
+        max_consecutive_errors = 5
         
         while self.running:
             try:
                 # Check if log file exists
                 if not os.path.exists(LOG_FILE_PATH):
+                    print(f"Waiting for log file: {LOG_FILE_PATH}")
                     time.sleep(5)
                     continue
                 
@@ -122,81 +125,144 @@ class AnomalyDetectionSystem:
                 
                 # If file grew, process new logs
                 if current_size > last_position:
-                    # Read logs
-                    log_df = self.spark.read.text(LOG_FILE_PATH)
-                    
-                    if log_df.count() == 0:
+                    # Read logs with better error handling
+                    try:
+                        log_df = self.spark.read.text(LOG_FILE_PATH)
+                        log_count = log_df.count()
+                        
+                        if log_count == 0:
+                            time.sleep(5)
+                            continue
+                        
+                        print(f"Processing {log_count} total logs...")
+                        
+                    except Exception as e:
+                        print(f"Error reading log file: {e}")
                         time.sleep(5)
                         continue
                     
-                    # Parse logs
-                    parsed_df = self.parser.parse_log_line(log_df)
-                    feature_df = self.parser.extract_features(parsed_df)
+                    # Parse logs with validation
+                    try:
+                        parsed_df = self.parser.parse_log_line(log_df)
+                        feature_df = self.parser.extract_features(parsed_df)
+                        
+                        # Filter out empty rows with better validation
+                        valid_df = feature_df.filter(
+                            col("timestamp").isNotNull() & 
+                            col("level").isNotNull() &
+                            col("service").isNotNull() &
+                            col("response_time").isNotNull()
+                        )
+                        
+                        valid_count = valid_df.count()
+                        if valid_count == 0:
+                            print("No valid logs found after parsing")
+                            time.sleep(5)
+                            continue
+                            
+                        print(f"Found {valid_count} valid logs after parsing")
+                        
+                    except Exception as e:
+                        print(f"Error parsing logs: {e}")
+                        consecutive_errors += 1
+                        if consecutive_errors >= max_consecutive_errors:
+                            print("Too many consecutive errors. Stopping...")
+                            break
+                        time.sleep(10)
+                        continue
                     
-                    # Filter out empty rows
-                    feature_df = feature_df.filter(
-                        col("timestamp").isNotNull() & 
-                        col("level").isNotNull()
-                    )
-                    
-                    if feature_df.count() == 0:
+                    # Create feature vectors with error handling
+                    try:
+                        scaled_df, _ = self.parser.create_feature_vector(valid_df)
+                        
+                        # Check if we have enough data for ML
+                        if scaled_df.count() < 5:
+                            print("Not enough data for anomaly detection")
+                            last_position = current_size
+                            time.sleep(5)
+                            continue
+                            
+                    except Exception as e:
+                        print(f"Error creating feature vectors: {e}")
                         time.sleep(5)
                         continue
                     
-                    # Create feature vectors
-                    scaled_df, _ = self.parser.create_feature_vector(feature_df)
-                    
-                    # Detect anomalies
-                    anomaly_df = self.detector.ensemble_anomaly_detection(scaled_df)
-                    
-                    # Filter only anomalies
-                    anomalies = anomaly_df.filter(col("is_anomaly_final") == 1)
-                    
-                    # Send to web interface
-                    anomaly_list = anomalies.select(
-                        "timestamp", "level", "service", "message", 
-                        "ip_address", "user", "response_time",
-                        "final_anomaly_score"
-                    ).collect()
-                    
-                    for anomaly in anomaly_list:
-                        anomaly_data = {
-                            "timestamp": str(anomaly.timestamp),
-                            "level": anomaly.level,
-                            "service": anomaly.service,
-                            "message": anomaly.message,
-                            "ip_address": anomaly.ip_address,
-                            "user": anomaly.user,
-                            "response_time": anomaly.response_time,
-                            "anomaly_score": float(anomaly.final_anomaly_score)
-                        }
-                        add_anomaly(anomaly_data)
-                    
-                    # Update statistics
-                    total_logs = log_df.count()
-                    update_statistics(total_logs - last_position)
-                    
-                    # Update graph every 10 iterations
-                    if total_logs % 100 == 0:
-                        print("Updating graph analysis...")
-                        vertices, edges = self.graph_analyzer.create_service_graph(feature_df)
-                        node_stats, suspicious_edges = self.graph_analyzer.detect_graph_anomalies(
-                            vertices, edges
-                        )
-                        self.graph_analyzer.export_graph_for_visualization(
-                            vertices, edges, "static/graph_data.json"
-                        )
-                    
-                    last_position = current_size
-                    print(f"Processed {total_logs} logs, found {len(anomaly_list)} anomalies")
+                    # Detect anomalies with error handling
+                    try:
+                        anomaly_df = self.detector.ensemble_anomaly_detection(scaled_df)
+                        
+                        # Filter only anomalies
+                        anomalies = anomaly_df.filter(col("is_anomaly_final") == 1)
+                        anomaly_count = anomalies.count()
+                        
+                        # Send to web interface
+                        if anomaly_count > 0:
+                            anomaly_list = anomalies.select(
+                                "timestamp", "level", "service", "message", 
+                                "ip_address", "user", "response_time",
+                                "final_anomaly_score"
+                            ).collect()
+                            
+                            for anomaly in anomaly_list:
+                                try:
+                                    anomaly_data = {
+                                        "timestamp": str(anomaly.timestamp) if anomaly.timestamp else datetime.now().isoformat(),
+                                        "level": str(anomaly.level) if anomaly.level else "UNKNOWN",
+                                        "service": str(anomaly.service) if anomaly.service else "unknown",
+                                        "message": str(anomaly.message) if anomaly.message else "",
+                                        "ip_address": str(anomaly.ip_address) if anomaly.ip_address else "N/A",
+                                        "user": str(anomaly.user) if anomaly.user else "N/A",
+                                        "response_time": int(anomaly.response_time) if anomaly.response_time else 0,
+                                        "anomaly_score": float(anomaly.final_anomaly_score) if anomaly.final_anomaly_score else 0.0
+                                    }
+                                    add_anomaly(anomaly_data)
+                                except Exception as e:
+                                    print(f"Error processing anomaly data: {e}")
+                                    continue
+                        
+                        # Update statistics
+                        new_logs = log_count - (last_position // 100)  # Rough estimate
+                        update_statistics(max(new_logs, 0))
+                        
+                        # Update graph every 100 new logs
+                        if log_count % 100 == 0:
+                            try:
+                                print("Updating graph analysis...")
+                                vertices, edges = self.graph_analyzer.create_service_graph(valid_df)
+                                node_stats, suspicious_edges = self.graph_analyzer.detect_graph_anomalies(
+                                    vertices, edges
+                                )
+                                self.graph_analyzer.export_graph_for_visualization(
+                                    vertices, edges, "static/graph_data.json"
+                                )
+                            except Exception as e:
+                                print(f"Error updating graph: {e}")
+                        
+                        last_position = current_size
+                        consecutive_errors = 0  # Reset error counter on success
+                        print(f"Successfully processed logs. Found {anomaly_count} anomalies.")
+                        
+                    except Exception as e:
+                        print(f"Error in anomaly detection: {e}")
+                        consecutive_errors += 1
+                        time.sleep(5)
+                        continue
                 
                 time.sleep(5)
                 
             except Exception as e:
-                print(f"Error in log processing: {e}")
+                print(f"Unexpected error in log processing loop: {e}")
                 import traceback
                 traceback.print_exc()
-                time.sleep(5)
+                consecutive_errors += 1
+                
+                if consecutive_errors >= max_consecutive_errors:
+                    print("Too many consecutive errors. Stopping log processing.")
+                    break
+                    
+                time.sleep(10)
+        
+        print("Log processing loop ended")
     
     def start(self):
         """Start the entire system"""

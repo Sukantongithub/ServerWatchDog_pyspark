@@ -82,6 +82,7 @@ class AnomalyDetector:
         )
         
         # Normalize to 0-1 range
+        from pyspark.sql.functions import when, lit
         predictions = predictions.withColumn(
             "anomaly_score",
             (col("anomaly_score") + 3) / 6  # Assuming z-scores typically range -3 to 3
@@ -110,16 +111,18 @@ class AnomalyDetector:
         """
         print("Calculating Isolation Forest scores...")
         
+        from pyspark.sql.functions import lit
+        
         # Get feature statistics
         feature_stats = df.select("features").rdd.map(
-            lambda row: np.array(row.features)
+            lambda row: np.array(row.features) if row.features is not None else np.array([0])
         ).collect()
         
         if len(feature_stats) == 0:
             return df.withColumn("isolation_score", lit(0.0))
         
         feature_array = np.array(feature_stats)
-        n_features = feature_array.shape[1]
+        n_features = feature_array.shape[1] if len(feature_array) > 0 else 1
         
         def calculate_path_length(features):
             """Calculate average path length across trees"""
@@ -129,7 +132,10 @@ class AnomalyDetector:
             path_lengths = []
             features_np = np.array(features)
             
-            for _ in range(n_trees):
+            # Use fewer trees for performance
+            n_trees_actual = min(n_trees, 50)
+            
+            for _ in range(n_trees_actual):
                 # Randomly select a feature and split point
                 depth = 0
                 current_features = features_np.copy()
@@ -141,10 +147,10 @@ class AnomalyDetector:
                 
                 path_lengths.append(depth)
             
-            avg_path_length = np.mean(path_lengths)
+            avg_path_length = np.mean(path_lengths) if path_lengths else 5.0
             # Normalize path length (shorter paths = more anomalous)
             normalized_score = 1.0 / (1.0 + avg_path_length / 10.0)
-            return float(normalized_score)
+            return float(min(max(normalized_score, 0.0), 1.0))  # Clamp to [0,1]
         
         isolation_udf = udf(calculate_path_length, DoubleType())
         

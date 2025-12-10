@@ -790,7 +790,7 @@
     {
       "source": "192.168.3.6",
       "target": "auth-service",
-      "value": 10
+      "value": 12
     },
     {
       "source": "192.168.69.167",
@@ -1095,7 +1095,7 @@
     {
       "source": "192.168.3.6",
       "target": "user-service",
-      "value": 3
+      "value": 6
     },
     {
       "source": "192.168.179.240",
@@ -1170,7 +1170,7 @@
     {
       "source": "203.0.113.0",
       "target": "db-service",
-      "value": 21
+      "value": 35
     },
     {
       "source": "192.168.110.38",
@@ -1225,7 +1225,7 @@
     {
       "source": "10.0.0.666",
       "target": "api-gateway",
-      "value": 23
+      "value": 34
     },
     {
       "source": "192.168.85.130",
@@ -1280,7 +1280,7 @@
     {
       "source": "10.0.0.666",
       "target": "db-service",
-      "value": 27
+      "value": 41
     },
     {
       "source": "192.168.85.130",
@@ -1335,7 +1335,7 @@
     {
       "source": "10.0.0.666",
       "target": "user-service",
-      "value": 24
+      "value": 33
     },
     {
       "source": "192.168.200.251",
@@ -1745,7 +1745,7 @@
     {
       "source": "192.168.116.218",
       "target": "api-gateway",
-      "value": 5
+      "value": 8
     },
     {
       "source": "192.168.246.5",
@@ -1825,7 +1825,7 @@
     {
       "source": "192.168.127.83",
       "target": "user-service",
-      "value": 6
+      "value": 8
     },
     {
       "source": "192.168.44.85",
@@ -1910,7 +1910,7 @@
     {
       "source": "192.168.116.218",
       "target": "db-service",
-      "value": 2
+      "value": 4
     },
     {
       "source": "192.168.33.68",
@@ -2190,7 +2190,7 @@
     {
       "source": "192.168.85.225",
       "target": "payment-service",
-      "value": 3
+      "value": 4
     },
     {
       "source": "192.168.60.74",

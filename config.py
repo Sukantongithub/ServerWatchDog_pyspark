@@ -25,7 +25,7 @@ ISOLATION_FOREST_CONTAMINATION = 0.1
 # Web Application Configuration
 FLASK_HOST = "0.0.0.0"
 FLASK_PORT = 5000
-FLASK_DEBUG = True
+FLASK_DEBUG = False  # Changed to False for production stability
 
 # Data Processing Configuration
 BATCH_INTERVAL = 5  # seconds
@@ -42,3 +42,9 @@ LOG_DIR = os.path.join(BASE_DIR, "logs")
 MODEL_DIR = os.path.join(BASE_DIR, "models")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+
+# Ensure directories exist
+os.makedirs(LOG_DIR, exist_ok=True)
+os.makedirs(MODEL_DIR, exist_ok=True)
+os.makedirs(STATIC_DIR, exist_ok=True)
+os.makedirs(TEMPLATES_DIR, exist_ok=True)

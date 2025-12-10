@@ -234,6 +234,10 @@ class UploadedDatasetAnalyzer:
             'details': 'Collecting anomalies and generating alerts...'
         })
         
+        # Add line numbers using monotonically_increasing_id
+        from pyspark.sql.functions import monotonically_increasing_id
+        anomaly_df = anomaly_df.withColumn("line_number", monotonically_increasing_id() + 1)
+        
         # Collect results
         spark.sparkContext.setJobDescription(f"MLlib Analysis: {os.path.basename(filepath)} - Collecting Results")
         results = anomaly_df.filter(anomaly_df.final_anomaly_score >= threshold).collect()
@@ -246,16 +250,17 @@ class UploadedDatasetAnalyzer:
         for row in results:
             anomaly_data = {
                 'timestamp': str(row.timestamp) if row.timestamp else datetime.now().isoformat(),
-                'level': row.level,
-                'service': row.service,
-                'message': row.message,
-                'ip_address': row.ip_address,
-                'user': row.user,
-                'response_time': row.response_time,  # Changed from response_time_ms
+                'level': row.level if hasattr(row, 'level') else 'UNKNOWN',
+                'service': row.service if hasattr(row, 'service') else 'unknown',
+                'message': row.message if hasattr(row, 'message') else '',
+                'ip_address': row.ip_address if hasattr(row, 'ip_address') else 'N/A',
+                'user': row.user if hasattr(row, 'user') else 'N/A',
+                'response_time': row.response_time if hasattr(row, 'response_time') else 0,
                 'anomaly_score': float(row.final_anomaly_score),
                 'file_id': file_id,
                 'analysis_type': 'spark_mllib',
-                'cluster': int(row.cluster) if hasattr(row, 'cluster') else None
+                'cluster': int(row.cluster) if hasattr(row, 'cluster') else None,
+                'line_number': int(row.line_number) if hasattr(row, 'line_number') else 0
             }
             
             anomalies.append(anomaly_data)
@@ -279,7 +284,7 @@ class UploadedDatasetAnalyzer:
         """Analyze using pattern-based detection (Spark-accelerated)"""
         print("🔍 Using pattern-based analysis with Spark acceleration...")
         
-        from pyspark.sql.functions import col, lower, when, lit
+        from pyspark.sql.functions import col, lower, when, lit, monotonically_increasing_id
         
         # Update Spark job description
         spark.sparkContext.setJobDescription(f"Pattern Analysis: {os.path.basename(filepath)} - Detecting Patterns")
@@ -294,6 +299,9 @@ class UploadedDatasetAnalyzer:
         # Parse logs first
         parser = LogParser(spark)
         parsed_df = parser.parse_log_line(log_df)
+        
+        # Add line numbers
+        parsed_df = parsed_df.withColumn("line_number", monotonically_increasing_id() + 1)
         
         # Add anomaly scoring based on patterns
         error_keywords = ['timeout', 'error', 'exception', 'failed', 'critical', 
@@ -341,15 +349,16 @@ class UploadedDatasetAnalyzer:
         for row in results:
             anomaly_data = {
                 'timestamp': str(row.timestamp) if row.timestamp else datetime.now().isoformat(),
-                'level': row.level,
-                'service': row.service,
-                'message': row.message,
-                'ip_address': row.ip_address,
-                'user': row.user,
-                'response_time': row.response_time,
+                'level': row.level if hasattr(row, 'level') else 'UNKNOWN',
+                'service': row.service if hasattr(row, 'service') else 'unknown',
+                'message': row.message if hasattr(row, 'message') else '',
+                'ip_address': row.ip_address if hasattr(row, 'ip_address') else 'N/A',
+                'user': row.user if hasattr(row, 'user') else 'N/A',
+                'response_time': row.response_time if hasattr(row, 'response_time') else 0,
                 'anomaly_score': float(row.anomaly_score),
                 'file_id': file_id,
-                'analysis_type': 'pattern_spark'
+                'analysis_type': 'pattern_spark',
+                'line_number': int(row.line_number) if hasattr(row, 'line_number') else 0
             }
             
             anomalies.append(anomaly_data)
