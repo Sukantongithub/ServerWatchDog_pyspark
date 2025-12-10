@@ -2233,13 +2233,17 @@
         console.log("🚀 Dataset analysis started:", data);
         document.getElementById("analysisProgress").style.display = "block";
         document.getElementById("analysisProgressBar").style.width = "5%";
-        document.getElementById("analysisStatus").textContent = "Analysis started with Spark MLlib...";
-        document.getElementById("analysisDetails").textContent = `Processing: ${data.filename}`;
+        document.getElementById("analysisStatus").textContent =
+          "Analysis started with Spark MLlib...";
+        document.getElementById(
+          "analysisDetails"
+        ).textContent = `Processing: ${data.filename}`;
       });
 
       socket.on("dataset_analysis_progress", (data) => {
         console.log("📊 Analysis progress:", data);
-        document.getElementById("analysisProgressBar").style.width = data.progress + "%";
+        document.getElementById("analysisProgressBar").style.width =
+          data.progress + "%";
         document.getElementById("analysisStatus").textContent = data.status;
         document.getElementById("analysisDetails").textContent = data.details;
       });
@@ -2247,7 +2251,8 @@
       socket.on("dataset_analysis_completed", (data) => {
         console.log("✅ Dataset analysis completed:", data);
         document.getElementById("analysisProgressBar").style.width = "100%";
-        document.getElementById("analysisStatus").textContent = "Analysis Complete!";
+        document.getElementById("analysisStatus").textContent =
+          "Analysis Complete!";
         document.getElementById("analysisDetails").innerHTML = `
           <strong>Results Summary:</strong><br>
           📊 Total Logs: ${data.stats.total_logs.toLocaleString()}<br>
@@ -2256,21 +2261,28 @@
           ⏱️ Processing Time: ${data.stats.processing_time}s<br>
           🔧 Method: ${data.method}<br>
           <br>
-          <button class="btn btn-success" onclick="viewAnalysisResults('${data.file_id}')" style="margin-top: 10px;">
+          <button class="btn btn-success" onclick="viewAnalysisResults('${
+            data.file_id
+          }')" style="margin-top: 10px;">
             <i class="fas fa-chart-bar"></i> View Full Results
           </button>
         `;
-        
+
         // Reload recent analyses list
         loadRecentAnalyses();
-        
+
         // Show success notification
-        showNotification("Analysis Complete", `Found ${data.anomalies_count} anomalies in ${data.stats.total_logs} logs`, "success");
+        showNotification(
+          "Analysis Complete",
+          `Found ${data.anomalies_count} anomalies in ${data.stats.total_logs} logs`,
+          "success"
+        );
       });
 
       socket.on("dataset_analysis_failed", (data) => {
         console.error("❌ Dataset analysis failed:", data);
-        document.getElementById("analysisStatus").textContent = "Analysis Failed!";
+        document.getElementById("analysisStatus").textContent =
+          "Analysis Failed!";
         document.getElementById("analysisDetails").innerHTML = `
           <strong style="color: #dc2626;">Error:</strong> ${data.error}<br>
           <button class="btn btn-primary" onclick="document.getElementById('analysisProgress').style.display='none'" style="margin-top: 10px;">
@@ -2840,12 +2852,12 @@
 
       function loadRecentAnalyses() {
         console.log("Loading recent analyses...");
-        
+
         fetch("/api/uploaded/list")
           .then((response) => response.json())
           .then((data) => {
             const listContainer = document.getElementById("recentAnalysesList");
-            
+
             if (!data.analyses || data.analyses.length === 0) {
               listContainer.innerHTML = `
                 <div style="text-align: center; padding: 40px; color: #999;">
@@ -2855,13 +2867,18 @@
               `;
               return;
             }
-            
-            listContainer.innerHTML = data.analyses.map((analysis) => {
-              const anomalyRate = analysis.total_logs > 0 
-                ? ((analysis.anomalies_found / analysis.total_logs) * 100).toFixed(2)
-                : 0;
-              
-              return `
+
+            listContainer.innerHTML = data.analyses
+              .map((analysis) => {
+                const anomalyRate =
+                  analysis.total_logs > 0
+                    ? (
+                        (analysis.anomalies_found / analysis.total_logs) *
+                        100
+                      ).toFixed(2)
+                    : 0;
+
+                return `
                 <div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s;"
                      onclick="viewAnalysisResults('${analysis.file_id}')"
                      onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'; this.style.borderColor='#0f766e';"
@@ -2872,11 +2889,17 @@
                         <i class="fas fa-file-alt"></i> ${analysis.filename}
                       </div>
                       <div style="font-size: 0.85em; color: #666;">
-                        Completed: ${new Date(analysis.analysis_completed).toLocaleString()}
+                        Completed: ${new Date(
+                          analysis.analysis_completed
+                        ).toLocaleString()}
                       </div>
                     </div>
                     <div style="text-align: right;">
-                      <span style="display: inline-block; padding: 4px 10px; background: ${analysis.critical_alerts > 0 ? '#fee2e2' : '#d1fae5'}; color: ${analysis.critical_alerts > 0 ? '#dc2626' : '#065f46'}; border-radius: 4px; font-size: 0.85em; font-weight: 600;">
+                      <span style="display: inline-block; padding: 4px 10px; background: ${
+                        analysis.critical_alerts > 0 ? "#fee2e2" : "#d1fae5"
+                      }; color: ${
+                  analysis.critical_alerts > 0 ? "#dc2626" : "#065f46"
+                }; border-radius: 4px; font-size: 0.85em; font-weight: 600;">
                         ${analysis.status}
                       </span>
                     </div>
@@ -2892,7 +2915,9 @@
                     </div>
                     <div style="text-align: center;">
                       <div style="font-size: 0.75em; color: #666; margin-bottom: 3px;">Critical</div>
-                      <div style="font-weight: 600; color: #dc2626;">${analysis.critical_alerts}</div>
+                      <div style="font-weight: 600; color: #dc2626;">${
+                        analysis.critical_alerts
+                      }</div>
                     </div>
                     <div style="text-align: center;">
                       <div style="font-size: 0.75em; color: #666; margin-bottom: 3px;">Anomaly Rate</div>
@@ -2901,7 +2926,8 @@
                   </div>
                 </div>
               `;
-            }).join("");
+              })
+              .join("");
           })
           .catch((error) => {
             console.error("Error loading analyses:", error);
@@ -2916,24 +2942,26 @@
 
       function viewAnalysisResults(fileId) {
         console.log("Viewing analysis results for:", fileId);
-        
+
         // Fetch analysis results
         Promise.all([
-          fetch(`/api/uploaded/results/${fileId}`).then(r => r.json()),
-          fetch(`/api/uploaded/statistics/${fileId}`).then(r => r.json()),
-          fetch(`/api/uploaded/distribution/${fileId}`).then(r => r.json())
+          fetch(`/api/uploaded/results/${fileId}`).then((r) => r.json()),
+          fetch(`/api/uploaded/statistics/${fileId}`).then((r) => r.json()),
+          fetch(`/api/uploaded/distribution/${fileId}`).then((r) => r.json()),
         ])
-        .then(([resultsData, statsData, distData]) => {
-          const results = resultsData.results;
-          const stats = statsData.statistics;
-          const dist = distData;
-          
-          // Build results display
-          const resultsHTML = `
+          .then(([resultsData, statsData, distData]) => {
+            const results = resultsData.results;
+            const stats = statsData.statistics;
+            const dist = distData;
+
+            // Build results display
+            const resultsHTML = `
             <div style="padding: 20px;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 style="color: #0f766e; margin: 0;">
-                  <i class="fas fa-chart-bar"></i> Analysis Results: ${results.filename}
+                  <i class="fas fa-chart-bar"></i> Analysis Results: ${
+                    results.filename
+                  }
                 </h3>
                 <button class="btn btn-secondary" onclick="document.getElementById('uploadTab').classList.add('active'); document.getElementById('resultsTab').classList.remove('active');">
                   <i class="fas fa-arrow-left"></i> Back
@@ -2952,11 +2980,15 @@
                 </div>
                 <div style="background: #fee2e2; padding: 15px; border-radius: 8px; border-left: 4px solid #dc2626;">
                   <div style="font-size: 0.85em; color: #666; margin-bottom: 5px;">Critical Alerts</div>
-                  <div style="font-size: 2em; font-weight: bold; color: #dc2626;">${stats.critical_alerts}</div>
+                  <div style="font-size: 2em; font-weight: bold; color: #dc2626;">${
+                    stats.critical_alerts
+                  }</div>
                 </div>
                 <div style="background: #dbeafe; padding: 15px; border-radius: 8px; border-left: 4px solid #3b82f6;">
                   <div style="font-size: 0.85em; color: #666; margin-bottom: 5px;">Processing Time</div>
-                  <div style="font-size: 2em; font-weight: bold; color: #3b82f6;">${stats.processing_time}s</div>
+                  <div style="font-size: 2em; font-weight: bold; color: #3b82f6;">${
+                    stats.processing_time
+                  }s</div>
                 </div>
               </div>
               
@@ -2975,10 +3007,16 @@
               <!-- Action Buttons -->
               <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                 <button class="btn btn-primary" onclick="viewAnomalies('${fileId}')">
-                  <i class="fas fa-exclamation-triangle"></i> View Anomalies (${stats.anomalies_found})
+                  <i class="fas fa-exclamation-triangle"></i> View Anomalies (${
+                    stats.anomalies_found
+                  })
                 </button>
                 <button class="btn btn-primary" onclick="viewAlerts('${fileId}')">
-                  <i class="fas fa-bell"></i> View Alerts (${stats.critical_alerts + stats.high_risk_alerts + stats.medium_risk_alerts})
+                  <i class="fas fa-bell"></i> View Alerts (${
+                    stats.critical_alerts +
+                    stats.high_risk_alerts +
+                    stats.medium_risk_alerts
+                  })
                 </button>
                 <button class="btn btn-secondary" onclick="downloadResults('${fileId}')">
                   <i class="fas fa-download"></i> Download Report
@@ -2989,76 +3027,342 @@
               <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
                 <h4 style="color: #0f766e; margin-bottom: 10px;"><i class="fas fa-info-circle"></i> Analysis Details</h4>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em;">
-                  <div><strong>Analysis Method:</strong> ${stats.analysis_method || 'Spark MLlib'}</div>
-                  <div><strong>Services Analyzed:</strong> ${stats.services_analyzed ? stats.services_analyzed.length : 0}</div>
-                  <div><strong>Suspicious IPs:</strong> ${stats.suspicious_ips_found ? stats.suspicious_ips_found.length : 0}</div>
-                  <div><strong>Anomaly Rate:</strong> ${statsData.summary.anomaly_rate}%</div>
-                  <div><strong>Time Range:</strong> ${stats.time_range.start || 'N/A'} to ${stats.time_range.end || 'N/A'}</div>
-                  <div><strong>Spark UI:</strong> <a href="${results.spark_job_url}" target="_blank" style="color: #0f766e;">View Jobs</a></div>
+                  <div><strong>Analysis Method:</strong> ${
+                    stats.analysis_method || "Spark MLlib"
+                  }</div>
+                  <div><strong>Services Analyzed:</strong> ${
+                    stats.services_analyzed ? stats.services_analyzed.length : 0
+                  }</div>
+                  <div><strong>Suspicious IPs:</strong> ${
+                    stats.suspicious_ips_found
+                      ? stats.suspicious_ips_found.length
+                      : 0
+                  }</div>
+                  <div><strong>Anomaly Rate:</strong> ${
+                    statsData.summary.anomaly_rate
+                  }%</div>
+                  <div><strong>Time Range:</strong> ${
+                    stats.time_range.start || "N/A"
+                  } to ${stats.time_range.end || "N/A"}</div>
+                  <div><strong>Spark UI:</strong> <a href="${
+                    results.spark_job_url
+                  }" target="_blank" style="color: #0f766e;">View Jobs</a></div>
                 </div>
               </div>
             </div>
           `;
-          
-          // Show results
-          document.getElementById("analysisResultsContent").innerHTML = resultsHTML;
-          document.getElementById("uploadTab").classList.remove("active");
-          document.getElementById("resultsTab").classList.add("active");
-          
-          // Render charts
-          setTimeout(() => {
-            renderServiceDistChart(fileId, dist.service_distribution);
-            renderSeverityDistChart(fileId, dist.severity_distribution);
-          }, 100);
-        })
-        .catch((error) => {
-          console.error("Error viewing results:", error);
-          alert("Error loading analysis results: " + error.message);
-        });
+
+            // Show results
+            document.getElementById("analysisResultsContent").innerHTML =
+              resultsHTML;
+            document.getElementById("uploadTab").classList.remove("active");
+            document.getElementById("resultsTab").classList.add("active");
+
+            // Render charts
+            setTimeout(() => {
+              renderServiceDistChart(fileId, dist.service_distribution);
+              renderSeverityDistChart(fileId, dist.severity_distribution);
+            }, 100);
+          })
+          .catch((error) => {
+            console.error("Error viewing results:", error);
+            alert("Error loading analysis results: " + error.message);
+          });
       }
 
       function renderServiceDistChart(fileId, data) {
         const trace = {
           labels: Object.keys(data),
           values: Object.values(data),
-          type: 'pie',
-          hole: 0.4
+          type: "pie",
+          hole: 0.4,
         };
-        
+
         const layout = {
           height: 300,
           margin: { t: 10, b: 10, l: 10, r: 10 },
           showlegend: true,
-          legend: { orientation: 'v', x: 1, y: 0.5 }
+          legend: { orientation: "v", x: 1, y: 0.5 },
         };
-        
-        Plotly.newPlot(`serviceDistChart_${fileId}`, [trace], layout, { responsive: true });
+
+        Plotly.newPlot(`serviceDistChart_${fileId}`, [trace], layout, {
+          responsive: true,
+        });
       }
 
       function renderSeverityDistChart(fileId, data) {
         const trace = {
           x: Object.keys(data),
           y: Object.values(data),
-          type: 'bar',
+          type: "bar",
           marker: {
-            color: ['#dc2626', '#f59e0b', '#fbbf24', '#10b981']
-          }
+            color: ["#dc2626", "#f59e0b", "#fbbf24", "#10b981"],
+          },
         };
-        
+
         const layout = {
           height: 300,
           margin: { t: 10, b: 40, l: 40, r: 10 },
-          xaxis: { title: 'Severity Level' },
-          yaxis: { title: 'Count' }
+          xaxis: { title: "Severity Level" },
+          yaxis: { title: "Count" },
         };
-        
-        Plotly.newPlot(`severityDistChart_${fileId}`, [trace], layout, { responsive: true });
+
+        Plotly.newPlot(`severityDistChart_${fileId}`, [trace], layout, {
+          responsive: true,
+        });
       }
 
       function viewAnomalies(fileId) {
         console.log("Viewing anomalies for:", fileId);
-        alert("Anomaly viewer will be implemented. Check console for details.");
-        // This would show a detailed table of anomalies
+
+        // Fetch anomalies
+        fetch(`/api/uploaded/anomalies/${fileId}?page=1&per_page=50`)
+          .then((response) => response.json())
+          .then((data) => {
+            if (!data.anomalies || data.anomalies.length === 0) {
+              alert("No anomalies found for this analysis.");
+              return;
+            }
+
+            // Create modal HTML
+            const modalHTML = `
+              <div id="anomaliesModal" class="modal" style="display: block;">
+                <div class="modal-content" style="max-width: 1200px; max-height: 80vh; overflow: auto;">
+                  <span class="close-btn" onclick="document.getElementById('anomaliesModal').remove()">&times;</span>
+                  <div class="modal-header">
+                    <i class="fas fa-exclamation-triangle"></i> Anomalies (${data.pagination.total} found)
+                  </div>
+                  <div class="modal-body">
+                    <!-- Filters -->
+                    <div style="display: flex; gap: 15px; margin-bottom: 20px; align-items: center; background: #f8f9fa; padding: 15px; border-radius: 8px;">
+                      <div style="flex: 1;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9em;">Filter by Service</label>
+                        <select id="anomalyServiceFilter" onchange="filterAnomalies('${fileId}')" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                          <option value="">All Services</option>
+                        </select>
+                      </div>
+                      <div style="flex: 1;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9em;">Min Severity Score</label>
+                        <input type="number" id="anomalySeverityFilter" min="0" max="1" step="0.1" value="0" onchange="filterAnomalies('${fileId}')" 
+                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                      </div>
+                      <div style="flex: 1;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9em;">Sort By</label>
+                        <select id="anomalySortBy" onchange="filterAnomalies('${fileId}')" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                          <option value="score_desc">Score (High to Low)</option>
+                          <option value="score_asc">Score (Low to High)</option>
+                          <option value="time_desc">Time (Recent First)</option>
+                          <option value="time_asc">Time (Oldest First)</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <!-- Anomalies Table -->
+                    <div style="overflow-x: auto; max-height: 500px; overflow-y: auto;">
+                      <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                        <thead style="position: sticky; top: 0; background: #0f766e; color: white; z-index: 10;">
+                          <tr>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Line</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Timestamp</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Service</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Level</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Message</th>
+                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">IP Address</th>
+                            <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Score</th>
+                          </tr>
+                        </thead>
+                        <tbody id="anomaliesTableBody"></tbody>
+                      </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <div id="anomaliesPagination" style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                      <div style="font-size: 0.9em; color: #666;">
+                        Showing <strong id="anomalyShowingStart">1</strong> to <strong id="anomalyShowingEnd">50</strong> of <strong>${data.pagination.total}</strong> anomalies
+                      </div>
+                      <div style="display: flex; gap: 5px;" id="anomalyPaginationButtons"></div>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="document.getElementById('anomaliesModal').remove()">Close</button>
+                    <button class="btn btn-primary" onclick="exportAnomalies('${fileId}')">
+                      <i class="fas fa-file-export"></i> Export to CSV
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `;
+
+            // Add modal to DOM
+            document.body.insertAdjacentHTML("beforeend", modalHTML);
+
+            // Populate service filter
+            const services = [...new Set(data.anomalies.map((a) => a.service))];
+            const serviceFilter = document.getElementById(
+              "anomalyServiceFilter"
+            );
+            services.forEach((service) => {
+              serviceFilter.innerHTML += `<option value="${service}">${service}</option>`;
+            });
+
+            // Render anomalies
+            renderAnomaliesTable(data.anomalies);
+            renderAnomalyPagination(fileId, data.pagination);
+          })
+          .catch((error) => {
+            console.error("Error loading anomalies:", error);
+            alert("Error loading anomalies: " + error.message);
+          });
+      }
+
+      function renderAnomaliesTable(anomalies) {
+        const tbody = document.getElementById("anomaliesTableBody");
+        tbody.innerHTML = anomalies
+          .map((anomaly) => {
+            const score = anomaly.anomaly_score || 0;
+            const scoreColor =
+              score >= 0.9
+                ? "#dc2626"
+                : score >= 0.7
+                ? "#f59e0b"
+                : score >= 0.5
+                ? "#fbbf24"
+                : "#10b981";
+            const scoreBg =
+              score >= 0.9
+                ? "#fee2e2"
+                : score >= 0.7
+                ? "#fef3c7"
+                : score >= 0.5
+                ? "#fef9c3"
+                : "#d1fae5";
+
+            return `
+            <tr style="border-bottom: 1px solid #eee; transition: background 0.2s;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='white'">
+              <td style="padding: 10px; border: 1px solid #eee; font-weight: 600; color: #666;">${
+                anomaly.line_number || "N/A"
+              }</td>
+              <td style="padding: 10px; border: 1px solid #eee; font-size: 0.85em;">${
+                anomaly.timestamp || "N/A"
+              }</td>
+              <td style="padding: 10px; border: 1px solid #eee;">
+                <span style="background: #e0f2fe; color: #0369a1; padding: 3px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600;">${
+                  anomaly.service || "unknown"
+                }</span>
+              </td>
+              <td style="padding: 10px; border: 1px solid #eee;">
+                <span style="background: ${
+                  anomaly.level === "ERROR"
+                    ? "#fee2e2"
+                    : anomaly.level === "WARN"
+                    ? "#fef3c7"
+                    : "#f0fdf4"
+                }; 
+                             color: ${
+                               anomaly.level === "ERROR"
+                                 ? "#dc2626"
+                                 : anomaly.level === "WARN"
+                                 ? "#f59e0b"
+                                 : "#10b981"
+                             }; 
+                             padding: 3px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600;">${
+                               anomaly.level || "INFO"
+                             }</span>
+              </td>
+              <td style="padding: 10px; border: 1px solid #eee; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${
+                anomaly.message || ""
+              }">${anomaly.message || "N/A"}</td>
+              <td style="padding: 10px; border: 1px solid #eee; font-family: monospace; font-size: 0.85em;">${
+                anomaly.ip_address || "N/A"
+              }</td>
+              <td style="padding: 10px; border: 1px solid #eee; text-align: center;">
+                <span style="background: ${scoreBg}; color: ${scoreColor}; padding: 5px 10px; border-radius: 4px; font-weight: 700; font-size: 0.9em;">${score.toFixed(
+              3
+            )}</span>
+              </td>
+            </tr>
+          `;
+          })
+          .join("");
+      }
+
+      function renderAnomalyPagination(fileId, pagination) {
+        const buttons = document.getElementById("anomalyPaginationButtons");
+        const { page, pages, total, per_page } = pagination;
+
+        buttons.innerHTML = "";
+
+        // Previous button
+        if (page > 1) {
+          buttons.innerHTML += `<button class="btn btn-secondary" style="padding: 6px 12px;" onclick="loadAnomalyPage('${fileId}', ${
+            page - 1
+          })">
+            <i class="fas fa-chevron-left"></i> Prev
+          </button>`;
+        }
+
+        // Page numbers
+        const startPage = Math.max(1, page - 2);
+        const endPage = Math.min(pages, page + 2);
+
+        for (let i = startPage; i <= endPage; i++) {
+          const isActive = i === page;
+          buttons.innerHTML += `<button class="btn ${
+            isActive ? "btn-primary" : "btn-secondary"
+          }" 
+                                        style="padding: 6px 12px; ${
+                                          isActive ? "font-weight: 700;" : ""
+                                        }" 
+                                        onclick="loadAnomalyPage('${fileId}', ${i})">${i}</button>`;
+        }
+
+        // Next button
+        if (page < pages) {
+          buttons.innerHTML += `<button class="btn btn-secondary" style="padding: 6px 12px;" onclick="loadAnomalyPage('${fileId}', ${
+            page + 1
+          })">
+            Next <i class="fas fa-chevron-right"></i>
+          </button>`;
+        }
+
+        // Update showing range
+        const start = (page - 1) * per_page + 1;
+        const end = Math.min(page * per_page, total);
+        document.getElementById("anomalyShowingStart").textContent = start;
+        document.getElementById("anomalyShowingEnd").textContent = end;
+      }
+
+      function loadAnomalyPage(fileId, page) {
+        const service = document.getElementById("anomalyServiceFilter").value;
+        const severity = document.getElementById("anomalySeverityFilter").value;
+
+        let url = `/api/uploaded/anomalies/${fileId}?page=${page}&per_page=50`;
+        if (service) url += `&service=${encodeURIComponent(service)}`;
+        if (severity) url += `&severity=${severity}`;
+
+        fetch(url)
+          .then((response) => response.json())
+          .then((data) => {
+            renderAnomaliesTable(data.anomalies);
+            renderAnomalyPagination(fileId, data.pagination);
+          })
+          .catch((error) => console.error("Error loading page:", error));
+      }
+
+      function filterAnomalies(fileId) {
+        loadAnomalyPage(fileId, 1);
+      }
+
+      function exportAnomalies(fileId) {
+        window.open(
+          `/api/uploaded/anomalies/${fileId}?format=csv&page=1&per_page=999999`,
+          "_blank"
+        );
+        showNotification(
+          "Export Started",
+          "Anomalies are being exported to CSV...",
+          "info"
+        );
       }
 
       function viewAlerts(fileId) {
@@ -3069,21 +3373,31 @@
 
       function downloadResults(fileId) {
         console.log("Downloading results for:", fileId);
-        alert("Download functionality will be implemented. Check console for details.");
+        alert(
+          "Download functionality will be implemented. Check console for details."
+        );
         // This would generate and download a report
       }
 
-      function showNotification(title, message, type = 'info') {
+      function showNotification(title, message, type = "info") {
         const colors = {
-          success: { bg: '#d1fae5', border: '#10b981', icon: 'check-circle' },
-          error: { bg: '#fee2e2', border: '#dc2626', icon: 'exclamation-circle' },
-          warning: { bg: '#fef3c7', border: '#f59e0b', icon: 'exclamation-triangle' },
-          info: { bg: '#dbeafe', border: '#3b82f6', icon: 'info-circle' }
+          success: { bg: "#d1fae5", border: "#10b981", icon: "check-circle" },
+          error: {
+            bg: "#fee2e2",
+            border: "#dc2626",
+            icon: "exclamation-circle",
+          },
+          warning: {
+            bg: "#fef3c7",
+            border: "#f59e0b",
+            icon: "exclamation-triangle",
+          },
+          info: { bg: "#dbeafe", border: "#3b82f6", icon: "info-circle" },
         };
-        
+
         const style = colors[type] || colors.info;
-        
-        const notification = document.createElement('div');
+
+        const notification = document.createElement("div");
         notification.style.cssText = `
           position: fixed;
           top: 90px;
@@ -3097,7 +3411,7 @@
           z-index: 10000;
           animation: slideInRight 0.3s ease;
         `;
-        
+
         notification.innerHTML = `
           <div style="display: flex; align-items: start; gap: 10px;">
             <i class="fas fa-${style.icon}" style="font-size: 1.5em; color: ${style.border};"></i>
@@ -3108,12 +3422,12 @@
             <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; font-size: 1.2em; color: #999; cursor: pointer; padding: 0; width: 20px; height: 20px;">×</button>
           </div>
         `;
-        
+
         document.body.appendChild(notification);
-        
+
         setTimeout(() => {
-          notification.style.transition = 'opacity 0.3s ease';
-          notification.style.opacity = '0';
+          notification.style.transition = "opacity 0.3s ease";
+          notification.style.opacity = "0";
           setTimeout(() => notification.remove(), 300);
         }, 5000);
       }
@@ -3172,8 +3486,7 @@
         });
       }
 
-      console.log("✅ Dashboard initialized successfully!");
+      console.log("Dashboard initialized successfully!");
     </script>
   </body>
 </html>
-`
