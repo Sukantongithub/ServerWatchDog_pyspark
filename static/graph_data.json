@@ -1170,7 +1170,7 @@
     {
       "source": "203.0.113.0",
       "target": "db-service",
-      "value": 35
+      "value": 36
     },
     {
       "source": "192.168.110.38",
@@ -1280,7 +1280,7 @@
     {
       "source": "10.0.0.666",
       "target": "db-service",
-      "value": 41
+      "value": 42
     },
     {
       "source": "192.168.85.130",
@@ -1335,7 +1335,7 @@
     {
       "source": "10.0.0.666",
       "target": "user-service",
-      "value": 33
+      "value": 34
     },
     {
       "source": "192.168.200.251",

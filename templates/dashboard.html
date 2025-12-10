@@ -2190,7 +2190,8 @@
 
       function updateLastUpdated() {
         const now = new Date();
-        document.getElementById("lastUpdate").textContent = now.toLocaleString();
+        document.getElementById("lastUpdate").textContent =
+          now.toLocaleString();
       }
 
       // ==========================================
@@ -2229,22 +2230,35 @@
       // ==========================================
 
       function updateStatistics(data) {
-        document.getElementById("totalLogs").textContent = (data.total_logs || 0).toLocaleString();
-        document.getElementById("totalAnomalies").textContent = (data.total_anomalies || 0).toLocaleString();
-        document.getElementById("anomalyRate").textContent = ((data.anomaly_rate || 0) * 100).toFixed(2) + "%";
+        document.getElementById("totalLogs").textContent = (
+          data.total_logs || 0
+        ).toLocaleString();
+        document.getElementById("totalAnomalies").textContent = (
+          data.total_anomalies || 0
+        ).toLocaleString();
+        document.getElementById("anomalyRate").textContent =
+          ((data.anomaly_rate || 0) * 100).toFixed(2) + "%";
       }
 
       function addAnomalyToTable(anomaly) {
         const tbody = document.getElementById("anomalyTableBody");
 
         // Remove placeholder
-        if (tbody.children.length === 1 && tbody.children[0].children.length === 1) {
+        if (
+          tbody.children.length === 1 &&
+          tbody.children[0].children.length === 1
+        ) {
           tbody.innerHTML = "";
         }
 
         const row = tbody.insertRow(0);
         const score = anomaly.anomaly_score || 0;
-        const scoreClass = score > 0.8 ? "anomaly-high" : score > 0.5 ? "anomaly-medium" : "anomaly-low";
+        const scoreClass =
+          score > 0.8
+            ? "anomaly-high"
+            : score > 0.5
+            ? "anomaly-medium"
+            : "anomaly-low";
 
         row.innerHTML = `
           <td>${anomaly.timestamp || "N/A"}</td>
@@ -2295,7 +2309,9 @@
               plot_bgcolor: "white",
             };
 
-            Plotly.newPlot("timelineChart", [trace], layout, { responsive: true });
+            Plotly.newPlot("timelineChart", [trace], layout, {
+              responsive: true,
+            });
           })
           .catch((error) => {
             console.error("Error loading timeline:", error);
@@ -2347,7 +2363,9 @@
               margin: { t: 50, b: 30, l: 30, r: 30 },
             };
 
-            Plotly.newPlot("servicePieChart", [trace], layout, { responsive: true });
+            Plotly.newPlot("servicePieChart", [trace], layout, {
+              responsive: true,
+            });
           })
           .catch((error) => console.error("Error loading pie chart:", error));
       }
@@ -2390,27 +2408,42 @@
         const height = 600;
 
         // ⭐ VALIDATE AND FILTER LINKS - Remove links that reference non-existent nodes
-        const nodeIds = new Set(data.nodes.map(n => n.id));
-        const validLinks = data.links.filter(link => {
+        const nodeIds = new Set(data.nodes.map((n) => n.id));
+        const validLinks = data.links.filter((link) => {
           const sourceExists = nodeIds.has(link.source.id || link.source);
           const targetExists = nodeIds.has(link.target.id || link.target);
-          
+
           if (!sourceExists || !targetExists) {
-            console.warn(`Skipping invalid link: ${link.source.id || link.source} -> ${link.target.id || link.target}`);
+            console.warn(
+              `Skipping invalid link: ${link.source.id || link.source} -> ${
+                link.target.id || link.target
+              }`
+            );
             return false;
           }
           return true;
         });
 
-        console.log(`Valid nodes: ${data.nodes.length}, Valid links: ${validLinks.length} (filtered ${data.links.length - validLinks.length} invalid)`);
+        console.log(
+          `Valid nodes: ${data.nodes.length}, Valid links: ${
+            validLinks.length
+          } (filtered ${data.links.length - validLinks.length} invalid)`
+        );
 
         // Use validLinks instead of data.links
         data.links = validLinks;
 
-        const svg = d3.select("#networkGraph").append("svg").attr("width", width).attr("height", height);
-        const zoom = d3.zoom().scaleExtent([0.1, 4]).on("zoom", (event) => {
-          g.attr("transform", event.transform);
-        });
+        const svg = d3
+          .select("#networkGraph")
+          .append("svg")
+          .attr("width", width)
+          .attr("height", height);
+        const zoom = d3
+          .zoom()
+          .scaleExtent([0.1, 4])
+          .on("zoom", (event) => {
+            g.attr("transform", event.transform);
+          });
 
         svg.call(zoom);
         networkGraphZoom = zoom;
@@ -2418,56 +2451,86 @@
         const g = svg.append("g");
 
         // Update stats
-        const serviceCount = data.nodes.filter((n) => n.type === "service").length;
+        const serviceCount = data.nodes.filter(
+          (n) => n.type === "service"
+        ).length;
         const ipCount = data.nodes.filter((n) => n.type === "ip").length;
         const userCount = data.nodes.filter((n) => n.type === "user").length;
 
         document.getElementById("graphServiceCount").textContent = serviceCount;
         document.getElementById("graphIpCount").textContent = ipCount;
         document.getElementById("graphUserCount").textContent = userCount;
-        document.getElementById("graphConnectionCount").textContent = data.links.length;
+        document.getElementById("graphConnectionCount").textContent =
+          data.links.length;
 
         // Create force simulation
         const simulation = d3
           .forceSimulation(data.nodes)
-          .force("link", d3.forceLink(data.links).id((d) => d.id).distance(100))
+          .force(
+            "link",
+            d3
+              .forceLink(data.links)
+              .id((d) => d.id)
+              .distance(100)
+          )
           .force("charge", d3.forceManyBody().strength(-300))
           .force("center", d3.forceCenter(width / 2, height / 2));
 
         networkGraphSimulation = simulation;
 
         // Create links
-        const link = g.append("g").selectAll("line").data(data.links).enter().append("line")
+        const link = g
+          .append("g")
+          .selectAll("line")
+          .data(data.links)
+          .enter()
+          .append("line")
           .attr("class", (d) => (d.anomaly ? "link link-anomaly" : "link"));
 
         // Create nodes
-        const node = g.append("g").selectAll("circle").data(data.nodes).enter().append("circle")
+        const node = g
+          .append("g")
+          .selectAll("circle")
+          .data(data.nodes)
+          .enter()
+          .append("circle")
           .attr("class", (d) => `node node-${d.type}`)
           .attr("r", (d) => d.size || 15)
-          .call(d3.drag()
-            .on("start", (event, d) => {
-              if (!event.active) simulation.alphaTarget(0.3).restart();
-              d.fx = d.x;
-              d.fy = d.y;
-            })
-            .on("drag", (event, d) => {
-              d.fx = event.x;
-              d.fy = event.y;
-            })
-            .on("end", (event, d) => {
-              if (!event.active) simulation.alphaTarget(0);
-              d.fx = null;
-              d.fy = null;
-            }));
+          .call(
+            d3
+              .drag()
+              .on("start", (event, d) => {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+              })
+              .on("drag", (event, d) => {
+                d.fx = event.x;
+                d.fy = event.y;
+              })
+              .on("end", (event, d) => {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+              })
+          );
 
         // Create labels
-        const label = g.append("g").selectAll("text").data(data.nodes).enter().append("text")
+        const label = g
+          .append("g")
+          .selectAll("text")
+          .data(data.nodes)
+          .enter()
+          .append("text")
           .attr("class", "node-label")
           .text((d) => d.label || d.id);
 
         simulation.on("tick", () => {
-          link.attr("x1", (d) => d.source.x).attr("y1", (d) => d.source.y)
-              .attr("x2", (d) => d.target.x).attr("y2", (d) => d.target.y);
+          link
+            .attr("x1", (d) => d.source.x)
+            .attr("y1", (d) => d.source.y)
+            .attr("x2", (d) => d.target.x)
+            .attr("y2", (d) => d.target.y);
           node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
           label.attr("x", (d) => d.x).attr("y", (d) => d.y + 4);
         });
@@ -2475,7 +2538,10 @@
 
       function resetGraphZoom() {
         if (networkGraphSvg && networkGraphZoom) {
-          networkGraphSvg.transition().duration(750).call(networkGraphZoom.transform, d3.zoomIdentity);
+          networkGraphSvg
+            .transition()
+            .duration(750)
+            .call(networkGraphZoom.transform, d3.zoomIdentity);
         }
       }
 
@@ -2489,13 +2555,19 @@
 
       function zoomGraphIn() {
         if (networkGraphSvg && networkGraphZoom) {
-          networkGraphSvg.transition().duration(300).call(networkGraphZoom.scaleBy, 1.3);
+          networkGraphSvg
+            .transition()
+            .duration(300)
+            .call(networkGraphZoom.scaleBy, 1.3);
         }
       }
 
       function zoomGraphOut() {
         if (networkGraphSvg && networkGraphZoom) {
-          networkGraphSvg.transition().duration(300).call(networkGraphZoom.scaleBy, 0.7);
+          networkGraphSvg
+            .transition()
+            .duration(300)
+            .call(networkGraphZoom.scaleBy, 0.7);
         }
       }
 
@@ -2504,18 +2576,28 @@
       // ==========================================
 
       function switchMainTab(tab) {
-        document.querySelectorAll(".main-tab-content").forEach((el) => el.classList.remove("active"));
-        document.querySelectorAll(".aside-navbar .nav-item").forEach((el) => el.classList.remove("active"));
+        document
+          .querySelectorAll(".main-tab-content")
+          .forEach((el) => el.classList.remove("active"));
+        document
+          .querySelectorAll(".aside-navbar .nav-item")
+          .forEach((el) => el.classList.remove("active"));
 
         if (tab === "dashboard") {
           document.getElementById("dashboardTab").classList.add("active");
-          document.querySelector('.aside-navbar .nav-item[data-tab="dashboard"]').classList.add("active");
+          document
+            .querySelector('.aside-navbar .nav-item[data-tab="dashboard"]')
+            .classList.add("active");
         } else if (tab === "dataset") {
           document.getElementById("datasetTab").classList.add("active");
-          document.querySelector('.aside-navbar .nav-item[data-tab="dataset"]').classList.add("active");
+          document
+            .querySelector('.aside-navbar .nav-item[data-tab="dataset"]')
+            .classList.add("active");
         } else if (tab === "network") {
           document.getElementById("networkTab").classList.add("active");
-          document.querySelector('.aside-navbar .nav-item[data-tab="network"]').classList.add("active");
+          document
+            .querySelector('.aside-navbar .nav-item[data-tab="network"]')
+            .classList.add("active");
           loadNetworkGraph();
         }
       }
@@ -2534,8 +2616,12 @@
         item.innerHTML = `
           <div class="notification-item-icon"><i class="fas fa-exclamation-circle"></i></div>
           <div class="notification-item-content">
-            <div class="notification-item-title">${anomaly.service || "Unknown Service"}</div>
-            <div class="notification-item-message">${anomaly.message || "No message"}</div>
+            <div class="notification-item-title">${
+              anomaly.service || "Unknown Service"
+            }</div>
+            <div class="notification-item-message">${
+              anomaly.message || "No message"
+            }</div>
             <div class="notification-item-details">
               <span>Score: ${(anomaly.anomaly_score || 0).toFixed(3)}</span>
               <span>IP: ${anomaly.ip_address || "N/A"}</span>
@@ -2544,14 +2630,17 @@
           <button class="notification-item-close">×</button>
         `;
 
-        item.querySelector(".notification-item-close").addEventListener("click", (e) => {
-          e.stopPropagation();
-          item.remove();
-          updateBadge();
-          if (content.querySelectorAll(".notification-item").length === 0) {
-            content.innerHTML = '<div class="notification-empty"><i class="fas fa-inbox"></i><p>No alerts yet</p></div>';
-          }
-        });
+        item
+          .querySelector(".notification-item-close")
+          .addEventListener("click", (e) => {
+            e.stopPropagation();
+            item.remove();
+            updateBadge();
+            if (content.querySelectorAll(".notification-item").length === 0) {
+              content.innerHTML =
+                '<div class="notification-empty"><i class="fas fa-inbox"></i><p>No alerts yet</p></div>';
+            }
+          });
 
         content.prepend(item);
         updateBadge();
@@ -2571,7 +2660,8 @@
 
       function clearAllNotifications() {
         const content = document.getElementById("notificationContent");
-        content.innerHTML = '<div class="notification-empty"><i class="fas fa-inbox"></i><p>No alerts yet</p></div>';
+        content.innerHTML =
+          '<div class="notification-empty"><i class="fas fa-inbox"></i><p>No alerts yet</p></div>';
         updateBadge();
       }
 
@@ -2641,12 +2731,15 @@
         const options = {
           use_spark_mllib: document.getElementById("useSparkMLlib").checked,
           generate_alerts: document.getElementById("generateAlerts").checked,
-          anomaly_threshold: parseFloat(document.getElementById("anomalyThreshold").value),
+          anomaly_threshold: parseFloat(
+            document.getElementById("anomalyThreshold").value
+          ),
         };
 
         document.getElementById("analysisProgress").style.display = "block";
         document.getElementById("analysisProgressBar").style.width = "0%";
-        document.getElementById("analysisStatus").textContent = "Uploading file...";
+        document.getElementById("analysisStatus").textContent =
+          "Uploading file...";
 
         const formData = new FormData();
         formData.append("file", file);
@@ -2655,13 +2748,18 @@
           .then((response) => response.json())
           .then((data) => {
             if (data.status === "success") {
-              document.getElementById("analysisProgressBar").style.width = "10%";
-              document.getElementById("analysisStatus").textContent = "File uploaded, starting analysis...";
+              document.getElementById("analysisProgressBar").style.width =
+                "10%";
+              document.getElementById("analysisStatus").textContent =
+                "File uploaded, starting analysis...";
 
               return fetch("/api/uploaded/analyze", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ filepath: data.filepath, options: options }),
+                body: JSON.stringify({
+                  filepath: data.filepath,
+                  options: options,
+                }),
               });
             } else {
               throw new Error(data.error || "Upload failed");
@@ -2670,15 +2768,19 @@
           .then((response) => response.json())
           .then((data) => {
             if (data.status === "success") {
-              document.getElementById("analysisDetails").innerHTML = `Analysis started!<br>File ID: ${data.file_id}`;
-              document.getElementById("analysisProgressBar").style.width = "100%";
+              document.getElementById(
+                "analysisDetails"
+              ).innerHTML = `Analysis started!<br>File ID: ${data.file_id}`;
+              document.getElementById("analysisProgressBar").style.width =
+                "100%";
             } else {
               throw new Error(data.error || "Analysis failed");
             }
           })
           .catch((error) => {
             console.error("Error:", error);
-            document.getElementById("analysisStatus").textContent = "Error: " + error.message;
+            document.getElementById("analysisStatus").textContent =
+              "Error: " + error.message;
           });
       }
 
@@ -2693,13 +2795,14 @@
 
       function fetchInitialData() {
         console.log("📥 Fetching initial data...");
-        
+
         fetch("/api/stats")
           .then((response) => response.json())
           .then((data) => {
             console.log("Stats received:", data);
             updateStatistics(data);
-            document.getElementById("criticalAlerts").textContent = data.critical_alerts || 0;
+            document.getElementById("criticalAlerts").textContent =
+              data.critical_alerts || 0;
           })
           .catch((error) => console.error("Error fetching stats:", error));
 

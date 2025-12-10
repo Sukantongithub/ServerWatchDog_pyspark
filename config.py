@@ -4,7 +4,7 @@ Configuration file for Log Anomaly Detection System
 import os
 
 # Spark Configuration
-SPARK_APP_NAME = "LogAnomalyDetection"
+SPARK_APP_NAME = "ServerWatchDog"
 SPARK_MASTER = "local[*]"  # Use all available cores
 SPARK_UI_PORT = 4040
 
