@@ -1215,6 +1215,67 @@ def delete_uploaded_analysis(file_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/uploaded/download/<file_id>')
+def download_uploaded_analysis(file_id):
+    """Download comprehensive analysis report as JSON"""
+    if file_id not in uploaded_dataset_results:
+        return jsonify({"error": "Analysis not found"}), 404
+    
+    try:
+        # Compile comprehensive report
+        report = {
+            "file_id": file_id,
+            "metadata": uploaded_dataset_results[file_id],
+            "statistics": uploaded_statistics.get(file_id, {}),
+            "anomalies": uploaded_anomalies.get(file_id, []),
+            "alerts": uploaded_alerts.get(file_id, []),
+            "summary": {
+                "total_logs": uploaded_statistics.get(file_id, {}).get('total_logs', 0),
+                "anomalies_found": len(uploaded_anomalies.get(file_id, [])),
+                "alerts_generated": len(uploaded_alerts.get(file_id, [])),
+                "critical_alerts": uploaded_statistics.get(file_id, {}).get('critical_alerts', 0),
+                "high_alerts": uploaded_statistics.get(file_id, {}).get('high_risk_alerts', 0),
+                "medium_alerts": uploaded_statistics.get(file_id, {}).get('medium_risk_alerts', 0),
+                "low_alerts": uploaded_statistics.get(file_id, {}).get('low_risk_alerts', 0),
+                "processing_time": uploaded_statistics.get(file_id, {}).get('processing_time', 0),
+                "analysis_method": uploaded_statistics.get(file_id, {}).get('analysis_method', 'Unknown'),
+                "generated_at": datetime.now().isoformat()
+            }
+        }
+        
+        # Create temporary file for download
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json', prefix=f'report_{file_id}_') as f:
+            json.dump(report, f, indent=2, default=str)
+            temp_path = f.name
+        
+        filename = uploaded_dataset_results[file_id].get('filename', 'unknown')
+        download_name = f"analysis_report_{filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        
+        # Send file and clean up
+        response = send_file(
+            temp_path,
+            as_attachment=True,
+            download_name=download_name,
+            mimetype='application/json'
+        )
+        
+        # Schedule cleanup of temp file after response
+        @response.call_on_close
+        def cleanup():
+            try:
+                os.unlink(temp_path)
+            except:
+                pass
+        
+        return response
+        
+    except Exception as e:
+        print(f"Error generating report: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 def add_anomaly(anomaly_data):
     """Add a new anomaly to the system"""
     with stats_lock:

@@ -3112,284 +3112,197 @@
         });
       }
 
-      function viewAnomalies(fileId) {
-        console.log("Viewing anomalies for:", fileId);
+      function viewAlerts(fileId) {
+        console.log("Viewing alerts for:", fileId);
 
-        // Fetch anomalies
-        fetch(`/api/uploaded/anomalies/${fileId}?page=1&per_page=50`)
-          .then((response) => response.json())
-          .then((data) => {
-            if (!data.anomalies || data.anomalies.length === 0) {
-              alert("No anomalies found for this analysis.");
+        // Fetch both alerts and statistics to get accurate counts
+        Promise.all([
+          fetch(`/api/uploaded/alerts/${fileId}?page=1&per_page=50`),
+          fetch(`/api/uploaded/statistics/${fileId}`)
+        ])
+          .then(([alertsResponse, statsResponse]) => 
+            Promise.all([alertsResponse.json(), statsResponse.json()])
+          )
+          .then(([alertsData, statsData]) => {
+            if (!alertsData.alerts || alertsData.alerts.length === 0) {
+              alert("No alerts found for this analysis.");
               return;
             }
 
-            // Create modal HTML
+            // Get accurate counts from statistics instead of current page
+            const stats = statsData.statistics;
+            const totalCounts = {
+              CRITICAL: stats.critical_alerts || 0,
+              HIGH: stats.high_risk_alerts || 0,
+              MEDIUM: stats.medium_risk_alerts || 0,
+              LOW: stats.low_risk_alerts || 0
+            };
+
+            // Create comprehensive alerts modal
             const modalHTML = `
-              <div id="anomaliesModal" class="modal" style="display: block;">
-                <div class="modal-content" style="max-width: 1200px; max-height: 80vh; overflow: auto;">
-                  <span class="close-btn" onclick="document.getElementById('anomaliesModal').remove()">&times;</span>
-                  <div class="modal-header">
-                    <i class="fas fa-exclamation-triangle"></i> Anomalies (${data.pagination.total} found)
+              <div id="alertsModal" class="modal" style="display: block;">
+                <div class="modal-content" style="max-width: 95%; width: 1400px; max-height: 90vh; overflow: auto; margin: 2% auto;">
+                  <span class="close-btn" onclick="document.getElementById('alertsModal').remove()">&times;</span>
+                  <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                      <i class="fas fa-bell"></i> Security Alerts Dashboard
+                    </div>
+                    <div style="font-size: 0.9em; color: #666;">
+                      Total: <strong>${alertsData.pagination.total}</strong> alerts found
+                    </div>
                   </div>
-                  <div class="modal-body">
-                    <!-- Filters -->
-                    <div style="display: flex; gap: 15px; margin-bottom: 20px; align-items: center; background: #f8f9fa; padding: 15px; border-radius: 8px;">
-                      <div style="flex: 1;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9em;">Filter by Service</label>
-                        <select id="anomalyServiceFilter" onchange="filterAnomalies('${fileId}')" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
-                          <option value="">All Services</option>
-                        </select>
+                  <div class="modal-body" style="padding: 20px;">
+                    <!-- Alert Statistics Summary -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px;">
+                      <div style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); padding: 20px; border-radius: 10px; border-left: 5px solid #dc2626; box-shadow: 0 2px 8px rgba(220, 38, 38, 0.2);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                          <i class="fas fa-exclamation-circle" style="font-size: 1.8em; color: #dc2626;"></i>
+                          <div>
+                            <div style="font-size: 0.85em; color: #991b1b; font-weight: 600;">Critical Alerts</div>
+                            <div style="font-size: 2.2em; font-weight: bold; color: #dc2626; line-height: 1;" id="alertCriticalCount">${totalCounts.CRITICAL}</div>
+                          </div>
+                        </div>
                       </div>
-                      <div style="flex: 1;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9em;">Min Severity Score</label>
-                        <input type="number" id="anomalySeverityFilter" min="0" max="1" step="0.1" value="0" onchange="filterAnomalies('${fileId}')" 
-                               style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                      <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 20px; border-radius: 10px; border-left: 5px solid #f59e0b; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                          <i class="fas fa-exclamation-triangle" style="font-size: 1.8em; color: #f59e0b;"></i>
+                          <div>
+                            <div style="font-size: 0.85em; color: #92400e; font-weight: 600;">High Risk</div>
+                            <div style="font-size: 2.2em; font-weight: bold; color: #f59e0b; line-height: 1;" id="alertHighCount">${totalCounts.HIGH}</div>
+                          </div>
+                        </div>
                       </div>
-                      <div style="flex: 1;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.9em;">Sort By</label>
-                        <select id="anomalySortBy" onchange="filterAnomalies('${fileId}')" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
-                          <option value="score_desc">Score (High to Low)</option>
-                          <option value="score_asc">Score (Low to High)</option>
-                          <option value="time_desc">Time (Recent First)</option>
-                          <option value="time_asc">Time (Oldest First)</option>
-                        </select>
+                      <div style="background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%); padding: 20px; border-radius: 10px; border-left: 5px solid #fbbf24; box-shadow: 0 2px 8px rgba(251, 191, 36, 0.2);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                          <i class="fas fa-bell" style="font-size: 1.8em; color: #fbbf24;"></i>
+                          <div>
+                            <div style="font-size: 0.85em; color: #78350f; font-weight: 600;">Medium Risk</div>
+                            <div style="font-size: 2.2em; font-weight: bold; color: #fbbf24; line-height: 1;" id="alertMediumCount">${totalCounts.MEDIUM}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); padding: 20px; border-radius: 10px; border-left: 5px solid #10b981; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                          <i class="fas fa-info-circle" style="font-size: 1.8em; color: #10b981;"></i>
+                          <div>
+                            <div style="font-size: 0.85em; color: #065f46; font-weight: 600;">Low Risk</div>
+                            <div style="font-size: 2.2em; font-weight: bold; color: #10b981; line-height: 1;" id="alertLowCount">${totalCounts.LOW}</div>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    
-                    <!-- Anomalies Table -->
-                    <div style="overflow-x: auto; max-height: 500px; overflow-y: auto;">
-                      <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
-                        <thead style="position: sticky; top: 0; background: #0f766e; color: white; z-index: 10;">
-                          <tr>
-                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Line</th>
-                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Timestamp</th>
-                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Service</th>
-                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Level</th>
-                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Message</th>
-                            <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">IP Address</th>
-                            <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Score</th>
-                          </tr>
-                        </thead>
-                        <tbody id="anomaliesTableBody"></tbody>
-                      </table>
+
+                    <!-- Filters and Controls -->
+                    <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 25px; border: 1px solid #e5e7eb;">
+                      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; align-items: end;">
+                        <div>
+                          <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.95em; color: #374151;">
+                            <i class="fas fa-filter"></i> Filter by Severity
+                          </label>
+                          <select id="alertSeverityFilter" onchange="filterAlerts('${fileId}')" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95em;">
+                            <option value="">All Severities</option>
+                            <option value="CRITICAL">🔴 Critical</option>
+                            <option value="HIGH">🟡 High</option>
+                            <option value="MEDIUM">🟠 Medium</option>
+                            <option value="LOW">🟢 Low</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.95em; color: #374151;">
+                            <i class="fas fa-server"></i> Filter by Service
+                          </label>
+                          <select id="alertServiceFilter" onchange="filterAlerts('${fileId}')" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95em;">
+                            <option value="">All Services</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.95em; color: #374151;">
+                            <i class="fas fa-sort"></i> Sort By
+                          </label>
+                          <select id="alertSortBy" onchange="filterAlerts('${fileId}')" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95em;">
+                            <option value="severity_desc">Severity (High to Low)</option>
+                            <option value="severity_asc">Severity (Low to High)</option>
+                            <option value="score_desc">Score (High to Low)</option>
+                            <option value="score_asc">Score (Low to High)</option>
+                            <option value="time_desc">Time (Recent First)</option>
+                            <option value="time_asc">Time (Oldest First)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 0.95em; color: #374151;">
+                            <i class="fas fa-search"></i> Search
+                          </label>
+                          <input type="text" id="alertSearchInput" placeholder="Search alerts..." onkeyup="if(event.key==='Enter') filterAlerts('${fileId}')" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95em;">
+                        </div>
+                      </div>
                     </div>
-                    
+
+                    <!-- Alerts Grid/List -->
+                    <div id="alertsListContainer" style="margin-bottom: 20px; max-height: 50vh; overflow-y: auto;"></div>
+
                     <!-- Pagination -->
-                    <div id="anomaliesPagination" style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                      <div style="font-size: 0.9em; color: #666;">
-                        Showing <strong id="anomalyShowingStart">1</strong> to <strong id="anomalyShowingEnd">50</strong> of <strong>${data.pagination.total}</strong> anomalies
+                    <div id="alertsPagination" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e5e7eb;">
+                      <div style="font-size: 0.95em; color: #666;">
+                        Showing <strong id="alertShowingStart">1</strong> to <strong id="alertShowingEnd">50</strong> of <strong>${alertsData.pagination.total}</strong> alerts
                       </div>
-                      <div style="display: flex; gap: 5px;" id="anomalyPaginationButtons"></div>
+                      <div style="display: flex; gap: 5px;" id="alertPaginationButtons"></div>
                     </div>
                   </div>
-                  <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="document.getElementById('anomaliesModal').remove()">Close</button>
-                    <button class="btn btn-primary" onclick="exportAnomalies('${fileId}')">
-                      <i class="fas fa-file-export"></i> Export to CSV
+                  <div class="modal-footer" style="display: flex; gap: 10px; justify-content: space-between; padding: 15px 20px; border-top: 1px solid #e5e7eb;">
+                    <div style="display: flex; gap: 10px;">
+                      <button class="btn btn-danger" onclick="showCriticalAlertsOnly('${fileId}')" style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-exclamation-circle"></i> Critical Only
+                      </button>
+                      <button class="btn btn-primary" onclick="exportAlerts('${fileId}')" style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-file-export"></i> Export CSV
+                      </button>
+                      <button class="btn btn-success" onclick="downloadTxtReport('${fileId}')" style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-file-alt"></i> Download TXT Report
+                      </button>
+                    </div>
+                    <button class="btn btn-secondary" onclick="document.getElementById('alertsModal').remove()" style="display: flex; align-items: center; gap: 8px;">
+                      <i class="fas fa-times"></i> Close
                     </button>
                   </div>
                 </div>
               </div>
             `;
 
-            // Add modal to DOM
-            document.body.insertAdjacentHTML("beforeend", modalHTML);
+            // Append modal to body
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            
+            // Store file ID for later use
+            window.currentAlertFileId = fileId;
 
-            // Populate service filter
-            const services = [...new Set(data.anomalies.map((a) => a.service))];
-            const serviceFilter = document.getElementById(
-              "anomalyServiceFilter"
-            );
-            services.forEach((service) => {
-              serviceFilter.innerHTML += `<option value="${service}">${service}</option>`;
-            });
-
-            // Render anomalies
-            renderAnomaliesTable(data.anomalies);
-            renderAnomalyPagination(fileId, data.pagination);
+            // Render alerts
+            renderAlertsList(alertsData.alerts);
+            renderAlertPagination(fileId, alertsData.pagination);
           })
           .catch((error) => {
-            console.error("Error loading anomalies:", error);
-            alert("Error loading anomalies: " + error.message);
+            console.error("Error loading alerts:", error);
+            alert("Error loading alerts: " + error.message);
           });
       }
 
-      function renderAnomaliesTable(anomalies) {
-        const tbody = document.getElementById("anomaliesTableBody");
-        tbody.innerHTML = anomalies
-          .map((anomaly) => {
-            const score = anomaly.anomaly_score || 0;
-            const scoreColor =
-              score >= 0.9
-                ? "#dc2626"
-                : score >= 0.7
-                ? "#f59e0b"
-                : score >= 0.5
-                ? "#fbbf24"
-                : "#10b981";
-            const scoreBg =
-              score >= 0.9
-                ? "#fee2e2"
-                : score >= 0.7
-                ? "#fef3c7"
-                : score >= 0.5
-                ? "#fef9c3"
-                : "#d1fae5";
+      // ==========================================
+      // TXT REPORT GENERATION FUNCTION
+      // ==========================================
 
-            return `
-            <tr style="border-bottom: 1px solid #eee; transition: background 0.2s;" onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background='white'">
-              <td style="padding: 10px; border: 1px solid #eee; font-weight: 600; color: #666;">${
-                anomaly.line_number || "N/A"
-              }</td>
-              <td style="padding: 10px; border: 1px solid #eee; font-size: 0.85em;">${
-                anomaly.timestamp || "N/A"
-              }</td>
-              <td style="padding: 10px; border: 1px solid #eee;">
-                <span style="background: #e0f2fe; color: #0369a1; padding: 3px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600;">${
-                  anomaly.service || "unknown"
-                }</span>
-              </td>
-              <td style="padding: 10px; border: 1px solid #eee;">
-                <span style="background: ${
-                  anomaly.level === "ERROR"
-                    ? "#fee2e2"
-                    : anomaly.level === "WARN"
-                    ? "#fef3c7"
-                    : "#f0fdf4"
-                }; 
-                             color: ${
-                               anomaly.level === "ERROR"
-                                 ? "#dc2626"
-                                 : anomaly.level === "WARN"
-                                 ? "#f59e0b"
-                                 : "#10b981"
-                             }; 
-                             padding: 3px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600;">${
-                               anomaly.level || "INFO"
-                             }</span>
-              </td>
-              <td style="padding: 10px; border: 1px solid #eee; max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${
-                anomaly.message || ""
-              }">${anomaly.message || "N/A"}</td>
-              <td style="padding: 10px; border: 1px solid #eee; font-family: monospace; font-size: 0.85em;">${
-                anomaly.ip_address || "N/A"
-              }</td>
-              <td style="padding: 10px; border: 1px solid #eee; text-align: center;">
-                <span style="background: ${scoreBg}; color: ${scoreColor}; padding: 5px 10px; border-radius: 4px; font-weight: 700; font-size: 0.9em;">${score.toFixed(
-              3
-            )}</span>
-              </td>
-            </tr>
-          `;
-          })
-          .join("");
-      }
-
-      function renderAnomalyPagination(fileId, pagination) {
-        const buttons = document.getElementById("anomalyPaginationButtons");
-        const { page, pages, total, per_page } = pagination;
-
-        buttons.innerHTML = "";
-
-        // Previous button
-        if (page > 1) {
-          buttons.innerHTML += `<button class="btn btn-secondary" style="padding: 6px 12px;" onclick="loadAnomalyPage('${fileId}', ${
-            page - 1
-          })">
-            <i class="fas fa-chevron-left"></i> Prev
-          </button>`;
-        }
-
-        // Page numbers
-        const startPage = Math.max(1, page - 2);
-        const endPage = Math.min(pages, page + 2);
-
-        for (let i = startPage; i <= endPage; i++) {
-          const isActive = i === page;
-          buttons.innerHTML += `<button class="btn ${
-            isActive ? "btn-primary" : "btn-secondary"
-          }" 
-                                        style="padding: 6px 12px; ${
-                                          isActive ? "font-weight: 700;" : ""
-                                        }" 
-                                        onclick="loadAnomalyPage('${fileId}', ${i})">${i}</button>`;
-        }
-
-        // Next button
-        if (page < pages) {
-          buttons.innerHTML += `<button class="btn btn-secondary" style="padding: 6px 12px;" onclick="loadAnomalyPage('${fileId}', ${
-            page + 1
-          })">
-            Next <i class="fas fa-chevron-right"></i>
-          </button>`;
-        }
-
-        // Update showing range
-        const start = (page - 1) * per_page + 1;
-        const end = Math.min(page * per_page, total);
-        document.getElementById("anomalyShowingStart").textContent = start;
-        document.getElementById("anomalyShowingEnd").textContent = end;
-      }
-
-      function loadAnomalyPage(fileId, page) {
-        const service = document.getElementById("anomalyServiceFilter").value;
-        const severity = document.getElementById("anomalySeverityFilter").value;
-
-        let url = `/api/uploaded/anomalies/${fileId}?page=${page}&per_page=50`;
-        if (service) url += `&service=${encodeURIComponent(service)}`;
-        if (severity) url += `&severity=${severity}`;
-
-        fetch(url)
-          .then((response) => response.json())
-          .then((data) => {
-            renderAnomaliesTable(data.anomalies);
-            renderAnomalyPagination(fileId, data.pagination);
-          })
-          .catch((error) => console.error("Error loading page:", error));
-      }
-
-      function filterAnomalies(fileId) {
-        loadAnomalyPage(fileId, 1);
-      }
-
-      function exportAnomalies(fileId) {
-        window.open(
-          `/api/uploaded/anomalies/${fileId}?format=csv&page=1&per_page=999999`,
-          "_blank"
-        );
-        showNotification(
-          "Export Started",
-          "Anomalies are being exported to CSV...",
-          "info"
-        );
-      }
-
-      function viewAlerts(fileId) {
-        console.log("Viewing alerts for:", fileId);
-        alert("Alert viewer will be implemented. Check console for details.");
-        // This would show alerts with filtering
-      }
-
-      function downloadResults(fileId) {
-        console.log("Downloading comprehensive report for:", fileId);
+      function downloadTxtReport(fileId) {
+        console.log("Generating TXT report for:", fileId);
 
         showNotification(
           "Generating Report",
-          "Please wait while we compile your analysis report...",
+          "Please wait while we compile your comprehensive analysis report...",
           "info"
         );
 
-        // Fetch all necessary data for report generation
+        // Fetch all necessary data
         Promise.all([
           fetch(`/api/uploaded/results/${fileId}`).then((r) => r.json()),
           fetch(`/api/uploaded/statistics/${fileId}`).then((r) => r.json()),
-          fetch(`/api/uploaded/anomalies/${fileId}?page=1&per_page=100`).then(
-            (r) => r.json()
-          ),
-          fetch(`/api/uploaded/alerts/${fileId}?page=1&per_page=100`).then(
-            (r) => r.json()
-          ),
+          fetch(`/api/uploaded/anomalies/${fileId}?page=1&per_page=30`).then((r) => r.json()),
+          fetch(`/api/uploaded/alerts/${fileId}?page=1&per_page=30`).then((r) => r.json())
         ])
           .then(([resultsData, statsData, anomaliesData, alertsData]) => {
             const results = resultsData.results;
@@ -3398,67 +3311,24 @@
             const anomalies = anomaliesData.anomalies || [];
             const alerts = alertsData.alerts || [];
 
-            // Generate comprehensive report
-            const report = generateComprehensiveReport(
-              results,
-              stats,
-              summary,
-              anomalies,
-              alerts,
-              anomaliesData.pagination,
-              alertsData.pagination
-            );
+            const totalAnomalies = stats.anomalies_found || 0;
+            const totalAlerts = (stats.critical_alerts || 0) + (stats.high_risk_alerts || 0) + (stats.medium_risk_alerts || 0) + (stats.low_risk_alerts || 0);
+            const criticalRate = stats.total_logs > 0 ? ((stats.critical_alerts || 0) / stats.total_logs * 100).toFixed(2) : 0;
+            
+            // Determine risk level
+            let riskLevel = "LOW";
+            if (stats.critical_alerts > 10 || parseFloat(summary.anomaly_rate) > 20) {
+              riskLevel = "CRITICAL";
+            } else if (stats.critical_alerts > 5 || parseFloat(summary.anomaly_rate) > 10) {
+              riskLevel = "HIGH";
+            } else if (stats.critical_alerts > 0 || parseFloat(summary.anomaly_rate) > 5) {
+              riskLevel = "MEDIUM";
+            }
 
-            // Create blob and download
-            const blob = new Blob([report], {
-              type: "text/plain;charset=utf-8",
-            });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `anomaly_analysis_report_${fileId}_${
-              new Date().toISOString().split("T")[0]
-            }.txt`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            const timestamp = new Date().toLocaleString();
 
-            showNotification(
-              "Report Downloaded",
-              "Analysis report has been downloaded successfully!",
-              "success"
-            );
-          })
-          .catch((error) => {
-            console.error("Error generating report:", error);
-            showNotification(
-              "Download Failed",
-              "Error generating report: " + error.message,
-              "error"
-            );
-          });
-      }
-
-      function generateComprehensiveReport(
-        results,
-        stats,
-        summary,
-        anomalies,
-        alerts,
-        anomalyPagination,
-        alertPagination
-      ) {
-        const timestamp = new Date().toLocaleString();
-        const totalAlerts = alertPagination?.total || alerts.length;
-        const totalAnomalies = anomalyPagination?.total || anomalies.length;
-
-        // Calculate risk level
-        const criticalRate = parseFloat(summary.critical_rate) || 0;
-        const riskLevel =
-          criticalRate > 10 ? "HIGH" : criticalRate > 5 ? "MEDIUM" : "LOW";
-
-        let report = `
+            // Generate comprehensive TXT report
+            let report = `
 ╔═══════════════════════════════════════════════════════════════════════════════╗
 ║               LOG ANOMALY DETECTION - COMPREHENSIVE ANALYSIS REPORT           ║
 ╚═══════════════════════════════════════════════════════════════════════════════╝
@@ -3469,9 +3339,7 @@ REPORT INFORMATION
 
 Report Generated:        ${timestamp}
 Analysis File:           ${results.filename}
-Analysis Completed:      ${new Date(
-          results.analysis_completed
-        ).toLocaleString()}
+Analysis Completed:      ${new Date(results.analysis_completed).toLocaleString()}
 Analysis Method:         ${stats.analysis_method || "Apache Spark MLlib"}
 File ID:                 ${results.file_id}
 
@@ -3504,203 +3372,82 @@ RISK ASSESSMENT
 
 Overall Risk Level:      ${riskLevel}
 Anomaly Rate:            ${summary.anomaly_rate}%
-Critical Alert Rate:     ${summary.critical_rate}%
+Critical Alert Rate:     ${criticalRate}%
 
-${
-  criticalRate > 10
-    ? "⚠️  WARNING: High number of critical alerts detected! Immediate action required."
-    : ""
-}
-${
-  parseFloat(summary.anomaly_rate) > 15
-    ? "⚠️  WARNING: High anomaly rate detected! System may be under attack or experiencing issues."
-    : ""
-}
-${
-  stats.suspicious_ips_found && stats.suspicious_ips_found.length > 10
-    ? "⚠️  WARNING: Large number of suspicious IPs detected!"
-    : ""
-}
-
+${criticalRate > 10 ? '⚠️  WARNING: High number of critical alerts detected! Immediate action required.\n' : ''}${parseFloat(summary.anomaly_rate) > 15 ? '⚠️  WARNING: High anomaly rate detected! System may be under attack or experiencing issues.\n' : ''}${stats.suspicious_ips_found && stats.suspicious_ips_found.length > 10 ? '⚠️  WARNING: Large number of suspicious IPs detected!\n' : ''}
 ═══════════════════════════════════════════════════════════════════════════════
 SERVICES ANALYZED
 ═══════════════════════════════════════════════════════════════════════════════
 
-Total Services:          ${
-          stats.services_analyzed ? stats.services_analyzed.length : 0
-        }
+Total Services:          ${stats.services_analyzed ? stats.services_analyzed.length : 0}
 
-${
-  stats.services_analyzed && stats.services_analyzed.length > 0
-    ? stats.services_analyzed
-        .map((s, i) => `${String(i + 1).padStart(3, " ")}. ${s}`)
-        .join("\n")
-    : "No service data available"
-}
+${stats.services_analyzed && stats.services_analyzed.length > 0 ? stats.services_analyzed.map((s, i) => `${String(i + 1).padStart(3, ' ')}. ${s}`).join('\n') : 'No service data available'}
 
 ═══════════════════════════════════════════════════════════════════════════════
 SUSPICIOUS IP ADDRESSES
 ═══════════════════════════════════════════════════════════════════════════════
 
-Total Suspicious IPs:    ${
-          stats.suspicious_ips_found ? stats.suspicious_ips_found.length : 0
-        }
+Total Suspicious IPs:    ${stats.suspicious_ips_found ? stats.suspicious_ips_found.length : 0}
 
-${
-  stats.suspicious_ips_found && stats.suspicious_ips_found.length > 0
-    ? stats.suspicious_ips_found
-        .slice(0, 20)
-        .map((ip, i) => `${String(i + 1).padStart(3, " ")}. ${ip}`)
-        .join("\n")
-    : "No suspicious IPs detected"
-}
+${stats.suspicious_ips_found && stats.suspicious_ips_found.length > 0 ? stats.suspicious_ips_found.slice(0, 20).map((ip, i) => `${String(i + 1).padStart(3, ' ')}. ${ip}`).join('\n') : 'No suspicious IPs detected'}
 
-${
-  stats.suspicious_ips_found && stats.suspicious_ips_found.length > 20
-    ? `\n... and ${stats.suspicious_ips_found.length - 20} more suspicious IPs`
-    : ""
-}
+${stats.suspicious_ips_found && stats.suspicious_ips_found.length > 20 ? `\n... and ${stats.suspicious_ips_found.length - 20} more suspicious IPs` : ''}
 
 ═══════════════════════════════════════════════════════════════════════════════
 ERROR PATTERNS DETECTED
 ═══════════════════════════════════════════════════════════════════════════════
 
-${
-  stats.error_patterns && Object.keys(stats.error_patterns).length > 0
-    ? Object.entries(stats.error_patterns)
-        .slice(0, 15)
-        .map(
-          ([pattern, count], i) =>
-            `${String(i + 1).padStart(3, " ")}. [${String(count).padStart(
-              5,
-              " "
-            )} occurrences] ${pattern}`
-        )
-        .join("\n")
-    : "No significant error patterns detected"
-}
+${stats.error_patterns && Object.keys(stats.error_patterns).length > 0 ? Object.entries(stats.error_patterns).slice(0, 15).map(([pattern, count], i) => `${String(i + 1).padStart(3, ' ')}. [${String(count).padStart(5, ' ')} occurrences] ${pattern}`).join('\n') : 'No significant error patterns detected'}
 
 ═══════════════════════════════════════════════════════════════════════════════
 TOP 30 CRITICAL ANOMALIES
 ═══════════════════════════════════════════════════════════════════════════════
 
-${
-  anomalies.length > 0
-    ? anomalies
-        .slice(0, 30)
-        .map(
-          (a, i) => `
-${String(i + 1).padStart(3, " ")}. ANOMALY #${a.line_number || "N/A"}
+${anomalies.length > 0 ? anomalies.slice(0, 30).map((a, i) => `
+${String(i + 1).padStart(3, ' ')}. ANOMALY #${a.line_number || 'N/A'}
      Severity Score:     ${(a.anomaly_score || 0).toFixed(4)}
-     Timestamp:          ${a.timestamp || "N/A"}
-     Service:            ${a.service || "unknown"}
-     Level:              ${a.level || "INFO"}
-     IP Address:         ${a.ip_address || "N/A"}
-     User:               ${a.user || "N/A"}
-     Message:            ${
-       a.message ? a.message.substring(0, 200) : "No message"
-     }${a.message && a.message.length > 200 ? "..." : ""}
-     ${"-".repeat(77)}
-  `
-        )
-        .join("\n")
-    : "No anomalies found"
-}
+     Timestamp:          ${a.timestamp || 'N/A'}
+     Service:            ${a.service || 'unknown'}
+     Level:              ${a.level || 'INFO'}
+     IP Address:         ${a.ip_address || 'N/A'}
+     User:               ${a.user || 'N/A'}
+     Message:            ${a.message ? a.message.substring(0, 200) : 'No message'}${a.message && a.message.length > 200 ? '...' : ''}
+     ${'-'.repeat(77)}`).join('\n') : 'No anomalies found'}
 
 ═══════════════════════════════════════════════════════════════════════════════
 TOP 30 SECURITY ALERTS
 ═══════════════════════════════════════════════════════════════════════════════
 
-${
-  alerts.length > 0
-    ? alerts
-        .slice(0, 30)
-        .map(
-          (a, i) => `
-${String(i + 1).padStart(3, " ")}. ALERT: ${a.message}
+${alerts.length > 0 ? alerts.slice(0, 30).map((a, i) => `
+${String(i + 1).padStart(3, ' ')}. ALERT: ${a.message}
      Severity:           ${a.severity}
-     Priority:           ${a.priority}
+     Priority:           ${a.priority || 'N/A'}
      Anomaly Score:      ${(a.anomaly_score || 0).toFixed(4)}
-     Timestamp:          ${a.timestamp || "N/A"}
-     Service:            ${a.service || "unknown"}
-     IP Address:         ${a.ip_address || "N/A"}
-     Line Number:        ${a.line_number || "N/A"}
-     ${"-".repeat(77)}
-  `
-        )
-        .join("\n")
-    : "No alerts generated"
-}
+     Timestamp:          ${a.timestamp || 'N/A'}
+     Service:            ${a.service || 'unknown'}
+     IP Address:         ${a.ip_address || 'N/A'}
+     Line Number:        ${a.line_number || 'N/A'}
+     ${'-'.repeat(77)}`).join('\n') : 'No alerts generated'}
 
 ═══════════════════════════════════════════════════════════════════════════════
 SERVICE DISTRIBUTION
 ═══════════════════════════════════════════════════════════════════════════════
 
-${
-  stats.service_distribution &&
-  Object.keys(stats.service_distribution).length > 0
-    ? Object.entries(stats.service_distribution)
-        .sort((a, b) => b[1] - a[1])
-        .map(
-          ([service, count], i) =>
-            `${String(i + 1).padStart(3, " ")}. ${service.padEnd(
-              30,
-              " "
-            )} ${String(count).padStart(8, " ")} logs`
-        )
-        .join("\n")
-    : "No service distribution data available"
-}
+${stats.service_distribution && Object.keys(stats.service_distribution).length > 0 ? Object.entries(stats.service_distribution).sort((a, b) => b[1] - a[1]).map(([service, count], i) => `${String(i + 1).padStart(3, ' ')}. ${service.padEnd(30, ' ')} ${String(count).padStart(8, ' ')} logs`).join('\n') : 'No service distribution data available'}
 
 ═══════════════════════════════════════════════════════════════════════════════
 TIME RANGE ANALYSIS
 ═══════════════════════════════════════════════════════════════════════════════
 
-Analysis Start:          ${stats.time_range?.start || "N/A"}
-Analysis End:            ${stats.time_range?.end || "N/A"}
-Time Span:               ${stats.time_range?.duration || "N/A"}
+Analysis Start:          ${stats.time_range?.start || 'N/A'}
+Analysis End:            ${stats.time_range?.end || 'N/A'}
+Time Span:               ${stats.time_range?.duration || 'N/A'}
 
 ═══════════════════════════════════════════════════════════════════════════════
 RECOMMENDATIONS & ACTION ITEMS
 ═══════════════════════════════════════════════════════════════════════════════
 
-${
-  stats.critical_alerts > 0
-    ? `🔴 CRITICAL: ${stats.critical_alerts} critical alerts require immediate attention!
-     └─ Review all critical alerts and take corrective action\n`
-    : ""
-}
-
-${
-  criticalRate > 10
-    ? `🔴 CRITICAL: High critical alert rate (${criticalRate}%)
-     └─ Investigate potential security breach or system failure\n`
-    : ""
-}
-
-${
-  parseFloat(summary.anomaly_rate) > 15
-    ? `⚠️  HIGH: Anomaly rate is ${summary.anomaly_rate}% (threshold: 15%)
-     └─ Review system logs and investigate unusual patterns\n`
-    : ""
-}
-
-${
-  stats.suspicious_ips_found && stats.suspicious_ips_found.length > 10
-    ? `⚠️  HIGH: ${stats.suspicious_ips_found.length} suspicious IPs detected
-     └─ Review IP access patterns and consider blocking suspicious sources\n`
-    : ""
-}
-
-${
-  stats.error_patterns && Object.keys(stats.error_patterns).length > 5
-    ? `⚠️  MEDIUM: ${
-        Object.keys(stats.error_patterns).length
-      } distinct error patterns found
-     └─ Review recurring errors and fix root causes\n`
-    : ""
-}
-
+${stats.critical_alerts > 0 ? `🔴 CRITICAL: ${stats.critical_alerts} critical alerts require immediate attention!\n     └─ Review all critical alerts and take corrective action\n\n` : ''}${criticalRate > 10 ? `🔴 CRITICAL: High critical alert rate (${criticalRate}%)\n     └─ Investigate potential security breach or system failure\n\n` : ''}${parseFloat(summary.anomaly_rate) > 15 ? `⚠️  HIGH: Anomaly rate is ${summary.anomaly_rate}% (threshold: 15%)\n     └─ Review system logs and investigate unusual patterns\n\n` : ''}${stats.suspicious_ips_found && stats.suspicious_ips_found.length > 10 ? `⚠️  HIGH: ${stats.suspicious_ips_found.length} suspicious IPs detected\n     └─ Review IP access patterns and consider blocking suspicious sources\n\n` : ''}${stats.error_patterns && Object.keys(stats.error_patterns).length > 5 ? `⚠️  MEDIUM: ${Object.keys(stats.error_patterns).length} distinct error patterns found\n     └─ Review recurring errors and fix root causes\n\n` : ''}
 ✅ STANDARD ACTIONS:
    ├─ Continue monitoring system for unusual activity
    ├─ Review all high and critical severity anomalies
@@ -3714,12 +3461,10 @@ TECHNICAL DETAILS
 ═══════════════════════════════════════════════════════════════════════════════
 
 Analysis Configuration:
-   ├─ Method:                      ${stats.analysis_method || "Spark MLlib"}
-   ├─ Threshold:                   ${stats.threshold || "Default"}
-   ├─ Features Used:               ${
-     stats.features_used || "Standard feature set"
-   }
-   ├─ Model Version:               ${stats.model_version || "v1.0"}
+   ├─ Method:                      ${stats.analysis_method || 'Spark MLlib'}
+   ├─ Threshold:                   ${stats.threshold || 'Default'}
+   ├─ Features Used:               ${stats.features_used || 'Standard feature set'}
+   ├─ Model Version:               ${stats.model_version || 'v1.0'}
    └─ Spark UI:                    ${results.spark_job_url}
 
 System Information:
@@ -3729,14 +3474,10 @@ System Information:
    └─ Alert Generation:            Rule-based + ML Scoring
 
 Performance Metrics:
-   ├─ Logs Processed per Second:  ${
-     stats.total_logs && stats.processing_time
-       ? Math.round(stats.total_logs / stats.processing_time)
-       : "N/A"
-   }
+   ├─ Logs Processed per Second:  ${stats.total_logs && stats.processing_time ? Math.round(stats.total_logs / stats.processing_time) : 'N/A'}
    ├─ Total Processing Time:       ${stats.processing_time}s
-   ├─ Memory Usage:                ${stats.memory_usage || "N/A"}
-   └─ CPU Utilization:             ${stats.cpu_usage || "N/A"}
+   ├─ Memory Usage:                ${stats.memory_usage || 'N/A'}
+   └─ CPU Utilization:             ${stats.cpu_usage || 'N/A'}
 
 ═══════════════════════════════════════════════════════════════════════════════
 SUMMARY STATISTICS
@@ -3747,15 +3488,9 @@ Total Anomalies:         ${totalAnomalies.toLocaleString()}
 Total Alerts:            ${totalAlerts}
 Anomaly Rate:            ${summary.anomaly_rate}%
 Critical Rate:           ${summary.critical_rate}%
-Services Analyzed:       ${
-          stats.services_analyzed ? stats.services_analyzed.length : 0
-        }
-Suspicious IPs:          ${
-          stats.suspicious_ips_found ? stats.suspicious_ips_found.length : 0
-        }
-Error Patterns:          ${
-          stats.error_patterns ? Object.keys(stats.error_patterns).length : 0
-        }
+Services Analyzed:       ${stats.services_analyzed ? stats.services_analyzed.length : 0}
+Suspicious IPs:          ${stats.suspicious_ips_found ? stats.suspicious_ips_found.length : 0}
+Error Patterns:          ${stats.error_patterns ? Object.keys(stats.error_patterns).length : 0}
 Processing Time:         ${stats.processing_time}s
 
 ═══════════════════════════════════════════════════════════════════════════════
@@ -3780,61 +3515,564 @@ END OF REPORT
 ═══════════════════════════════════════════════════════════════════════════════
 `;
 
-        return report;
+            // Create and download the TXT file
+            const blob = new Blob([report], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `analysis_report_${fileId}_${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+            showNotification(
+              "Report Downloaded",
+              "Comprehensive TXT report has been generated and downloaded successfully!",
+              "success"
+            );
+          })
+          .catch((error) => {
+            console.error("Error generating TXT report:", error);
+            showNotification(
+              "Report Generation Failed",
+              "Failed to generate report: " + error.message,
+              "error"
+            );
+          });
       }
 
+      // ==========================================
+      // ALERT VIEWER HELPER FUNCTIONS
+      // ==========================================
+
+      function renderAlertsList(alerts) {
+        const container = document.getElementById("alertsListContainer");
+
+        if (alerts.length === 0) {
+          container.innerHTML = `
+            <div style="text-align: center; padding: 60px 20px; color: #9ca3af;">
+              <i class="fas fa-inbox" style="font-size: 3em; margin-bottom: 15px; opacity: 0.5;"></i>
+              <p style="font-size: 1.1em;">No alerts match your filters</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = alerts
+          .map((alert, index) => {
+            const severityColors = {
+              CRITICAL: {
+                bg: "#fee2e2",
+                border: "#dc2626",
+                text: "#991b1b",
+                icon: "🔴",
+              },
+              HIGH: {
+                bg: "#fef3c7",
+                border: "#f59e0b",
+                text: "#92400e",
+                icon: "🟡",
+              },
+              MEDIUM: {
+                bg: "#fef9c3",
+                border: "#fbbf24",
+                text: "#78350f",
+                icon: "🟠",
+              },
+              LOW: {
+                bg: "#d1fae5",
+                border: "#10b981",
+                text: "#065f46",
+                icon: "🟢",
+              },
+            };
+
+            const color = severityColors[alert.severity] || severityColors.LOW;
+            const score = alert.anomaly_score || 0;
+
+            return `
+              <div style="background: white; border: 1px solid #e5e7eb; border-left: 5px solid ${
+                color.border
+              }; border-radius: 8px; padding: 15px; margin-bottom: 12px; transition: all 0.2s; cursor: pointer;"
+                   onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'; this.style.transform='translateY(-2px)';"
+                   onmouseout="this.style.boxShadow='none'; this.style.transform='translateY(0)';"
+                   onclick="showAlertDetails(${index}, '${alert.severity}')">
+                
+                <!-- Alert Header -->
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                  <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                      <span style="background: ${color.bg}; color: ${
+              color.text
+            }; padding: 4px 12px; border-radius: 4px; font-size: 0.85em; font-weight: 700;">
+                        ${color.icon} ${alert.severity}
+                      </span>
+                      <span style="background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 4px; font-size: 0.85em; font-weight: 600;">
+                        <i class="fas fa-server"></i> ${
+                          alert.service || "unknown"
+                        }
+                      </span>
+                      ${
+                        alert.priority
+                          ? `<span style="background: #f3e8ff; color: #7c3aed; padding: 4px 10px; border-radius: 4px; font-size: 0.85em; font-weight: 600;">
+                        Priority: ${alert.priority}
+                      </span>`
+                          : ""
+                      }
+                    </div>
+                    <div style="font-size: 1.05em; font-weight: 600; color: #1f2937; margin-top: 8px;">
+                      <i class="fas fa-exclamation-triangle" style="color: ${
+                        color.border
+                      };"></i> ${alert.message || "No message"}
+                    </div>
+                  </div>
+                  <div style="text-align: right;">
+                    <div style="background: ${
+                      score >= 0.9
+                        ? "#fee2e2"
+                        : score >= 0.7
+                        ? "#fef3c7"
+                        : "#d1fae5"
+                    }; 
+                                color: ${
+                                  score >= 0.9
+                                    ? "#dc2626"
+                                    : score >= 0.7
+                                    ? "#f59e0b"
+                                    : "#10b981"
+                                }; 
+                                padding: 8px 12px; border-radius: 6px; font-weight: 700; font-size: 1.1em;">
+                      ${score.toFixed(3)}
+                    </div>
+                    <div style="font-size: 0.75em; color: #9ca3af; margin-top: 3px;">Anomaly Score</div>
+                  </div>
+                </div>
+
+                <!-- Alert Details -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; padding: 12px; background: #f9fafb; border-radius: 6px; margin-top: 10px;">
+                  <div>
+                    <div style="font-size: 0.75em; color: #6b7280; margin-bottom: 3px; font-weight: 600;">
+                      <i class="fas fa-clock"></i> Timestamp
+                    </div>
+                    <div style="font-size: 0.9em; color: #374151;">${
+                      alert.timestamp || "N/A"
+                    }</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 0.75em; color: #6b7280; margin-bottom: 3px; font-weight: 600;">
+                      <i class="fas fa-network-wired"></i> IP Address
+                    </div>
+                    <div style="font-size: 0.9em; color: #374151; font-family: monospace;">${
+                      alert.ip_address || "N/A"
+                    }</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 0.75em; color: #6b7280; margin-bottom: 3px; font-weight: 600;">
+                      <i class="fas fa-user"></i> User
+                    </div>
+                    <div style="font-size: 0.9em; color: #374151;">${
+                      alert.user || "N/A"
+                    }</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 0.75em; color: #6b7280; margin-bottom: 3px; font-weight: 600;">
+                      <i class="fas fa-hashtag"></i> Line Number
+                    </div>
+                    <div style="font-size: 0.9em; color: #374151;">${
+                      alert.line_number || "N/A"
+                    }</div>
+                  </div>
+                </div>
+
+                <!-- Recommendation if available -->
+                ${
+                  alert.recommendation
+                    ? `
+                  <div style="margin-top: 10px; padding: 10px; background: #eff6ff; border-left: 3px solid #3b82f6; border-radius: 4px;">
+                    <div style="font-size: 0.85em; font-weight: 600; color: #1e40af; margin-bottom: 4px;">
+                      <i class="fas fa-lightbulb"></i> Recommendation
+                    </div>
+                    <div style="font-size: 0.85em; color: #1e3a8a;">${alert.recommendation}</div>
+                  </div>
+                `
+                    : ""
+                }
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      function renderAlertPagination(fileId, pagination) {
+        const buttons = document.getElementById("alertPaginationButtons");
+        const { page, pages, total, per_page } = pagination;
+
+        buttons.innerHTML = "";
+
+        // Previous button
+        if (page > 1) {
+          buttons.innerHTML += `<button class="btn btn-secondary" style="padding: 6px 12px;" onclick="loadAlertPage('${fileId}', ${
+            page - 1
+          })">
+            <i class="fas fa-chevron-left"></i> Prev
+          </button>`;
+        }
+
+        // Page numbers
+        const startPage = Math.max(1, page - 2);
+        const endPage = Math.min(pages, page + 2);
+
+        if (startPage > 1) {
+          buttons.innerHTML += `<button class="btn btn-secondary" style="padding: 6px 12px;" onclick="loadAlertPage('${fileId}', 1)">1</button>`;
+          if (startPage > 2) {
+            buttons.innerHTML += `<span style="padding: 6px 12px; color: #999;">...</span>`;
+          }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+          const isActive = i === page;
+          buttons.innerHTML += `<button class="btn ${
+            isActive ? "btn-primary" : "btn-secondary"
+          }" 
+                                        style="padding: 6px 12px; ${
+                                          isActive ? "font-weight: 700;" : ""
+                                        }" 
+                                        onclick="loadAlertPage('${fileId}', ${i})">${i}</button>`;
+        }
+
+        if (endPage < pages) {
+          if (endPage < pages - 1) {
+            buttons.innerHTML += `<span style="padding: 6px 12px; color: #999;">...</span>`;
+          }
+          buttons.innerHTML += `<button class="btn btn-secondary" style="padding: 6px 12px;" onclick="loadAlertPage('${fileId}', ${pages})">${pages}</button>`;
+        }
+
+        // Next button
+        if (page < pages) {
+          buttons.innerHTML += `<button class="btn btn-secondary" style="padding: 6px 12px;" onclick="loadAlertPage('${fileId}', ${
+            page + 1
+          })">
+            Next <i class="fas fa-chevron-right"></i>
+          </button>`;
+        }
+
+        // Update showing range
+        const start = (page - 1) * per_page + 1;
+        const end = Math.min(page * per_page, total);
+        document.getElementById("alertShowingStart").textContent = start;
+        document.getElementById("alertShowingEnd").textContent = end;
+      }
+
+      function loadAlertPage(fileId, page) {
+        const severity = document.getElementById("alertSeverityFilter").value;
+        const service = document.getElementById("alertServiceFilter").value;
+        const sortBy = document.getElementById("alertSortBy").value;
+        const search = document.getElementById("alertSearchInput").value;
+
+        let url = `/api/uploaded/alerts/${fileId}?page=${page}&per_page=50`;
+        if (severity) url += `&severity=${encodeURIComponent(severity)}`;
+        if (service) url += `&service=${encodeURIComponent(service)}`;
+        if (sortBy) url += `&sort=${sortBy}`;
+        if (search) url += `&search=${encodeURIComponent(search)}`;
+
+        fetch(url)
+          .then((response) => response.json())
+          .then((data) => {
+            renderAlertsList(data.alerts);
+            renderAlertPagination(fileId, data.pagination);
+
+            // Update counts
+            const counts = {
+              CRITICAL: data.alerts.filter((a) => a.severity === "CRITICAL")
+                .length,
+              HIGH: data.alerts.filter((a) => a.severity === "HIGH").length,
+              MEDIUM: data.alerts.filter((a) => a.severity === "MEDIUM").length,
+              LOW: data.alerts.filter((a) => a.severity === "LOW").length,
+            };
+
+            document.getElementById("alertCriticalCount").textContent =
+              counts.CRITICAL;
+            document.getElementById("alertHighCount").textContent = counts.HIGH;
+            document.getElementById("alertMediumCount").textContent =
+              counts.MEDIUM;
+            document.getElementById("alertLowCount").textContent = counts.LOW;
+          })
+          .catch((error) => {
+            console.error("Error loading alert page:", error);
+            showNotification(
+              "Error",
+              "Failed to load alerts: " + error.message,
+              "error"
+            );
+          });
+      }
+
+      function filterAlerts(fileId) {
+        loadAlertPage(fileId, 1);
+      }
+
+      function showCriticalAlertsOnly(fileId) {
+        document.getElementById("alertSeverityFilter").value = "CRITICAL";
+        filterAlerts(fileId);
+      }
+
+      function exportAlerts(fileId) {
+        const severity = document.getElementById("alertSeverityFilter").value;
+        const service = document.getElementById("alertServiceFilter").value;
+
+        let url = `/api/uploaded/alerts/${fileId}?format=csv&page=1&per_page=999999`;
+        if (severity) url += `&severity=${encodeURIComponent(severity)}`;
+        if (service) url += `&service=${encodeURIComponent(service)}`;
+
+        window.open(url, "_blank");
+        showNotification(
+          "Export Started",
+          "Alerts are being exported to CSV...",
+          "info"
+        );
+      }
+
+      function showAlertDetails(index, severity) {
+        // Future enhancement: Show detailed alert information in a sub-modal
+        console.log(
+          "Show details for alert index:",
+          index,
+          "severity:",
+          severity
+        );
+      }
+
+      // ==========================================
+      // DOWNLOAD REPORT FUNCTION
+      // ==========================================
+
+      function downloadResults(fileId) {
+        console.log("Downloading report for:", fileId);
+
+        // Show loading notification
+        showNotification(
+          "Generating Report",
+          "Please wait while we prepare your analysis report...",
+          "info"
+        );
+
+        // Download the comprehensive report
+        fetch(`/api/uploaded/download/${fileId}`)
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Failed to download report");
+            }
+            return response.blob();
+          })
+          .then((blob) => {
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `analysis_report_${fileId}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+
+            showNotification(
+              "Download Complete",
+              "Analysis report has been downloaded successfully",
+              "success"
+            );
+          })
+          .catch((error) => {
+            console.error("Error downloading report:", error);
+            showNotification(
+              "Download Failed",
+              "Failed to download report: " + error.message,
+              "error"
+            );
+          });
+      }
+
+      // ==========================================
+      // NOTIFICATION HELPER FUNCTION
+      // ==========================================
+
       function showNotification(title, message, type = "info") {
-        const colors = {
-          success: { bg: "#d1fae5", border: "#10b981", icon: "check-circle" },
-          error: {
-            bg: "#fee2e2",
-            border: "#dc2626",
-            icon: "exclamation-circle",
-          },
-          warning: {
-            bg: "#fef3c7",
-            border: "#f59e0b",
-            icon: "exclamation-triangle",
-          },
-          info: { bg: "#dbeafe", border: "#3b82f6", icon: "info-circle" },
+        const iconMap = {
+          success: "fa-check-circle",
+          error: "fa-exclamation-circle",
+          warning: "fa-exclamation-triangle",
+          info: "fa-info-circle",
         };
 
-        const style = colors[type] || colors.info;
+        const colorMap = {
+          success: "#10b981",
+          error: "#dc2626",
+          warning: "#f59e0b",
+          info: "#3b82f6",
+        };
 
         const notification = document.createElement("div");
         notification.style.cssText = `
           position: fixed;
           top: 90px;
           right: 20px;
-          background: ${style.bg};
-          border-left: 4px solid ${style.border};
+          background: white;
+          border-left: 4px solid ${colorMap[type]};
           padding: 15px 20px;
           border-radius: 8px;
           box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-          max-width: 350px;
-          z-index: 10000;
+          z-index: 3000;
+          min-width: 300px;
+          max-width: 400px;
           animation: slideInRight 0.3s ease;
         `;
 
         notification.innerHTML = `
-          <div style="display: flex; align-items: start; gap: 10px;">
-            <i class="fas fa-${style.icon}" style="font-size: 1.5em; color: ${style.border};"></i>
+          <div style="display: flex; align-items: start; gap: 12px;">
+            <i class="fas ${iconMap[type]}" style="font-size: 1.5em; color: ${colorMap[type]};"></i>
             <div style="flex: 1;">
-              <div style="font-weight: 600; margin-bottom: 5px; color: #333;">${title}</div>
-              <div style="font-size: 0.9em; color: #666;">${message}</div>
+              <div style="font-weight: 600; color: #1f2937; margin-bottom: 4px;">${title}</div>
+              <div style="font-size: 0.9em; color: #6b7280;">${message}</div>
             </div>
-            <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; font-size: 1.2em; color: #999; cursor: pointer; padding: 0; width: 20px; height: 20px;">×</button>
+            <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: #9ca3af; cursor: pointer; font-size: 1.2em; padding: 0;">
+              ×
+            </button>
           </div>
         `;
 
         document.body.appendChild(notification);
 
+        // Auto remove after 5 seconds
         setTimeout(() => {
-          notification.style.transition = "opacity 0.3s ease";
-          notification.style.opacity = "0";
-          setTimeout(() => notification.remove(), 300);
+          if (notification.parentElement) {
+            notification.style.animation = "slideOutRight 0.3s ease";
+            setTimeout(() => notification.remove(), 300);
+          }
         }, 5000);
       }
+
+      // Add animation styles
+      const style = document.createElement("style");
+      style.textContent = `
+        @keyframes slideInRight {
+          from {
+            transform: translateX(400px);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        @keyframes slideOutRight {
+          from {
+            transform: translateX(0);
+            opacity: 1;
+          }
+          to {
+            transform: translateX(400px);
+            opacity: 0;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+
+      // ==========================================
+      // VIEW ANOMALIES FUNCTION
+      // ==========================================
+
+      function viewAnomalies(fileId) {
+        console.log("Viewing anomalies for:", fileId);
+
+        // Fetch anomalies with pagination
+        fetch(`/api/uploaded/anomalies/${fileId}?page=1&per_page=100`)
+          .then((response) => response.json())
+          .then((data) => {
+            if (!data.anomalies || data.anomalies.length === 0) {
+              alert("No anomalies found for this analysis.");
+              return;
+            }
+
+            // Create anomalies viewer modal (simplified version)
+            const modalHTML = `
+              <div id="anomaliesModal" class="modal" style="display: block;">
+                <div class="modal-content" style="max-width: 90%; width: 1200px; max-height: 85vh; overflow: auto; margin: 5% auto;">
+                  <span class="close-btn" onclick="document.getElementById('anomaliesModal').remove()">&times;</span>
+                  <div class="modal-header">
+                    <i class="fas fa-exclamation-triangle"></i> Detected Anomalies (${
+                      data.pagination.total
+                    } total)
+                  </div>
+                  <div class="modal-body">
+                    <table style="width: 100%; border-collapse: collapse;">
+                      <thead>
+                        <tr style="background: #0f766e; color: white;">
+                          <th style="padding: 12px; text-align: left;">Timestamp</th>
+                          <th style="padding: 12px; text-align: left;">Service</th>
+                          <th style="padding: 12px; text-align: left;">Level</th>
+                          <th style="padding: 12px; text-align: left;">Message</th>
+                          <th style="padding: 12px; text-align: left;">IP Address</th>
+                          <th style="padding: 12px; text-align: center;">Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${data.anomalies
+                          .map((anomaly) => {
+                            const score = anomaly.anomaly_score || 0;
+                            const scoreClass =
+                              score > 0.8
+                                ? "anomaly-high"
+                                : score > 0.5
+                                ? "anomaly-medium"
+                                : "anomaly-low";
+                            return `
+                            <tr style="border-bottom: 1px solid #eee;">
+                              <td style="padding: 10px;">${
+                                anomaly.timestamp || "N/A"
+                              }</td>
+                              <td style="padding: 10px;">${
+                                anomaly.service || "N/A"
+                              }</td>
+                              <td style="padding: 10px;">${
+                                anomaly.level || "N/A"
+                              }</td>
+                              <td style="padding: 10px;">${
+                                anomaly.message || "N/A"
+                              }</td>
+                              <td style="padding: 10px;">${
+                                anomaly.ip_address || "N/A"
+                              }</td>
+                              <td class="${scoreClass}" style="padding: 10px; text-align: center; font-weight: 600;">${score.toFixed(
+                              3
+                            )}</td>
+                            </tr>
+                          `;
+                          })
+                          .join("")}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="document.getElementById('anomaliesModal').remove()">
+                      <i class="fas fa-times"></i> Close
+                    </button>
+                    <button class="btn btn-primary" onclick="window.open('/api/uploaded/anomalies/${fileId}?format=csv', '_blank')">
+                      <i class="fas fa-download"></i> Export CSV
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `;
+
+            document.body.insertAdjacentHTML("beforeend", modalHTML);
+          })
+          .catch((error) => {
+            console.error("Error loading anomalies:", error);
+            alert("Error loading anomalies: " + error.message);
+          });
+      }
+
+      // ==========================================
 
       // ==========================================
       // INITIALIZATION
