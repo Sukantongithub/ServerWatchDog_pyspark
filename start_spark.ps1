@@ -16,7 +16,7 @@ $env:PYSPARK_DRIVER_PYTHON = "$PSScriptRoot\.venv\Scripts\python.exe"
 Write-Host "[1/4] Setting JAVA_HOME to: $env:JAVA_HOME" -ForegroundColor Green
 Write-Host "[2/4] Setting SPARK_HOME to: $env:SPARK_HOME" -ForegroundColor Green
 
-# Activate virtual environment
+# Activate virtual environment  
 Write-Host "[3/4] Activating virtual environment..." -ForegroundColor Green
 .\.venv\Scripts\Activate.ps1
 
