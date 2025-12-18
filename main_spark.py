@@ -418,7 +418,7 @@ class SparkAnomalyDetectionSystem:
                 # Generate comprehensive statistics
                 spark_stats = self.generate_spark_statistics(feature_df, anomalies_found)
                 
-                print(f"✅ Spark MLlib Analysis Complete!")
+                print(f"   Spark MLlib Analysis Complete!")
                 print(f"   Total Logs: {log_count}")
                 print(f"   Anomalies Found: {len(anomalies_found)}")
                 print(f"   Critical: {critical_anomalies}, High: {high_anomalies}, Medium: {medium_anomalies}")
