@@ -1217,47 +1217,147 @@ def delete_uploaded_analysis(file_id):
 
 @app.route('/api/uploaded/download/<file_id>')
 def download_uploaded_analysis(file_id):
-    """Download comprehensive analysis report as JSON"""
+    """Download comprehensive analysis report as text file"""
     if file_id not in uploaded_dataset_results:
         return jsonify({"error": "Analysis not found"}), 404
     
     try:
-        # Compile comprehensive report
-        report = {
-            "file_id": file_id,
-            "metadata": uploaded_dataset_results[file_id],
-            "statistics": uploaded_statistics.get(file_id, {}),
-            "anomalies": uploaded_anomalies.get(file_id, []),
-            "alerts": uploaded_alerts.get(file_id, []),
-            "summary": {
-                "total_logs": uploaded_statistics.get(file_id, {}).get('total_logs', 0),
-                "anomalies_found": len(uploaded_anomalies.get(file_id, [])),
-                "alerts_generated": len(uploaded_alerts.get(file_id, [])),
-                "critical_alerts": uploaded_statistics.get(file_id, {}).get('critical_alerts', 0),
-                "high_alerts": uploaded_statistics.get(file_id, {}).get('high_risk_alerts', 0),
-                "medium_alerts": uploaded_statistics.get(file_id, {}).get('medium_risk_alerts', 0),
-                "low_alerts": uploaded_statistics.get(file_id, {}).get('low_risk_alerts', 0),
-                "processing_time": uploaded_statistics.get(file_id, {}).get('processing_time', 0),
-                "analysis_method": uploaded_statistics.get(file_id, {}).get('analysis_method', 'Unknown'),
-                "generated_at": datetime.now().isoformat()
-            }
-        }
+        # Get report data
+        metadata = uploaded_dataset_results[file_id]
+        statistics = uploaded_statistics.get(file_id, {})
+        anomalies = uploaded_anomalies.get(file_id, [])
+        alerts = uploaded_alerts.get(file_id, [])
         
-        # Create temporary file for download
+        # Build text report
+        report_lines = []
+        report_lines.append("=" * 80)
+        report_lines.append("LOG ANOMALY DETECTION ANALYSIS REPORT")
+        report_lines.append("=" * 80)
+        report_lines.append("")
+        
+        # Report Metadata
+        report_lines.append(f"Report Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        report_lines.append(f"File ID: {file_id}")
+        report_lines.append(f"Source File: {metadata.get('filename', 'Unknown')}")
+        report_lines.append(f"Upload Time: {metadata.get('upload_time', 'Unknown')}")
+        report_lines.append("")
+        
+        # Executive Summary
+        report_lines.append("-" * 80)
+        report_lines.append("EXECUTIVE SUMMARY")
+        report_lines.append("-" * 80)
+        report_lines.append(f"Total Logs Processed: {statistics.get('total_logs', 0):,}")
+        report_lines.append(f"Anomalies Detected: {len(anomalies):,}")
+        report_lines.append(f"Alerts Generated: {len(alerts):,}")
+        report_lines.append(f"Processing Time: {statistics.get('processing_time', 0):.2f} seconds")
+        report_lines.append(f"Analysis Method: {statistics.get('analysis_method', 'Ensemble (KMeans + Isolation Forest)')}")
+        report_lines.append("")
+        
+        # Alert Breakdown
+        report_lines.append("-" * 80)
+        report_lines.append("ALERT SEVERITY BREAKDOWN")
+        report_lines.append("-" * 80)
+        report_lines.append(f"Critical Alerts: {statistics.get('critical_alerts', 0)}")
+        report_lines.append(f"High Risk Alerts: {statistics.get('high_risk_alerts', 0)}")
+        report_lines.append(f"Medium Risk Alerts: {statistics.get('medium_risk_alerts', 0)}")
+        report_lines.append(f"Low Risk Alerts: {statistics.get('low_risk_alerts', 0)}")
+        report_lines.append("")
+        
+        # Statistics
+        report_lines.append("-" * 80)
+        report_lines.append("DETAILED STATISTICS")
+        report_lines.append("-" * 80)
+        
+        # Services Affected
+        if statistics.get('services'):
+            report_lines.append("Services Affected:")
+            for service in statistics['services']:
+                report_lines.append(f"  • {service}")
+            report_lines.append("")
+        
+        # Error Rate
+        if 'error_rate' in statistics:
+            report_lines.append(f"Error Rate: {statistics['error_rate']:.2%}")
+            report_lines.append("")
+        
+        # Top Suspicious IPs
+        if statistics.get('suspicious_ips'):
+            report_lines.append("Top 10 Suspicious IP Addresses:")
+            for idx, ip in enumerate(statistics['suspicious_ips'][:10], 1):
+                report_lines.append(f"  {idx}. {ip}")
+            report_lines.append("")
+        
+        # Top Anomalous Services
+        if statistics.get('services_distribution'):
+            report_lines.append("Services with Most Anomalies:")
+            for service, count in statistics['services_distribution'].items():
+                report_lines.append(f"  • {service}: {count} anomalies")
+            report_lines.append("")
+        
+        # Top Anomalies
+        if anomalies:
+            report_lines.append("-" * 80)
+            report_lines.append(f"TOP ANOMALIES (showing first 50 of {len(anomalies)})")
+            report_lines.append("-" * 80)
+            for idx, anomaly in enumerate(anomalies[:50], 1):
+                report_lines.append(f"\n[Anomaly {idx}]")
+                report_lines.append(f"  Timestamp: {anomaly.get('timestamp', 'N/A')}")
+                report_lines.append(f"  Service: {anomaly.get('service', 'N/A')}")
+                report_lines.append(f"  Log Level: {anomaly.get('log_level', 'N/A')}")
+                report_lines.append(f"  Message: {anomaly.get('message', 'N/A')[:100]}")
+                report_lines.append(f"  Source IP: {anomaly.get('ip_address', 'N/A')}")
+                report_lines.append(f"  Anomaly Score: {anomaly.get('anomaly_score', 0):.4f}")
+                report_lines.append(f"  Severity: {anomaly.get('severity', 'N/A')}")
+        
+        # Top Alerts
+        if alerts:
+            report_lines.append("\n" + "-" * 80)
+            report_lines.append(f"TOP CRITICAL ALERTS (showing first 30 of {len(alerts)})")
+            report_lines.append("-" * 80)
+            for idx, alert in enumerate(alerts[:30], 1):
+                report_lines.append(f"\n[Alert {idx}]")
+                report_lines.append(f"  Timestamp: {alert.get('timestamp', 'N/A')}")
+                report_lines.append(f"  Service: {alert.get('service', 'N/A')}")
+                report_lines.append(f"  Severity: {alert.get('severity', 'N/A')}")
+                report_lines.append(f"  Description: {alert.get('description', 'N/A')}")
+        
+        # Recommendations
+        report_lines.append("\n" + "-" * 80)
+        report_lines.append("RECOMMENDATIONS")
+        report_lines.append("-" * 80)
+        
+        if statistics.get('critical_alerts', 0) > 0:
+            report_lines.append("• Immediate investigation required for CRITICAL severity alerts")
+        if statistics.get('high_risk_alerts', 0) > 10:
+            report_lines.append("• Review configuration and firewall rules for suspicious IPs")
+        if len(anomalies) > statistics.get('total_logs', 1) * 0.1:
+            report_lines.append("• Anomaly rate is high (>10%) - consider reviewing log sources")
+        if statistics.get('error_rate', 0) > 0.05:
+            report_lines.append("• Error rate exceeds 5% - investigate service health")
+        report_lines.append("• Archive this report for compliance and audit purposes")
+        report_lines.append("• Schedule regular analysis runs for continuous monitoring")
+        
+        report_lines.append("\n" + "=" * 80)
+        report_lines.append("END OF REPORT")
+        report_lines.append("=" * 80)
+        
+        # Create temporary text file
         import tempfile
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json', prefix=f'report_{file_id}_') as f:
-            json.dump(report, f, indent=2, default=str)
+        report_text = "\n".join(report_lines)
+        
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt', prefix=f'report_{file_id}_', encoding='utf-8') as f:
+            f.write(report_text)
             temp_path = f.name
         
-        filename = uploaded_dataset_results[file_id].get('filename', 'unknown')
-        download_name = f"analysis_report_{filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        filename = metadata.get('filename', 'unknown')
+        download_name = f"anomaly_analysis_report_{filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
         
         # Send file and clean up
         response = send_file(
             temp_path,
             as_attachment=True,
             download_name=download_name,
-            mimetype='application/json'
+            mimetype='text/plain'
         )
         
         # Schedule cleanup of temp file after response

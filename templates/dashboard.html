@@ -4023,7 +4023,7 @@ END OF REPORT
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
-            a.download = `analysis_report_${fileId}.json`;
+            a.download = `analysis_report_${fileId}.txt`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
